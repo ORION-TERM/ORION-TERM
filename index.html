@@ -607,7 +607,17 @@
     card.appendChild(body);
     botRow(card);
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    logTermView(t.term);
     suggestRelated(t);
+  }
+
+  function logTermView(term){
+    if (!term) return;
+    fetch(FEEDBACK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "logView", term })
+    }).catch(() => { /* 조회수 기록 실패는 조용히 무시 (검색 자체엔 영향 없음) */ });
   }
 
   function suggestRelated(t){
