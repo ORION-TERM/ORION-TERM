@@ -757,6 +757,41 @@
     return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
   }
 
+  // ── 영문 약어를 한글 음차(알파벳을 하나씩 한글로 읽은 발음)로도 검색되게 하기 ──
+  // 예: "POG" → "피오지", "MD" → "엠디". 새 용어가 추가돼도 자동으로 적용됨.
+  const LETTER_KO = {
+    A: "에이", B: "비", C: "씨", D: "디", E: "이", F: "에프", G: "지", H: "에이치",
+    I: "아이", J: "제이", K: "케이", L: "엘", M: "엠", N: "엔", O: "오", P: "피",
+    Q: "큐", R: "알", S: "에스", T: "티", U: "유", V: "브이", W: "더블유", X: "엑스",
+    Y: "와이", Z: "지"
+  };
+  // 알파벳을 글자 그대로 읽지 않고 단어처럼 읽는 관용 발음(예외)
+  const PHONETIC_OVERRIDES = {
+    "HACCP": ["해썹"],
+    "BOM (Bill of Material) (자재 명세서)": ["봄"]
+  };
+
+  function extractLatinToken(term){
+    const m = term.match(/^[A-Za-z0-9/&-]+/);
+    return m ? m[0] : "";
+  }
+
+  function spellKorean(token){
+    let out = "";
+    for (const ch of token.toUpperCase()){
+      if (LETTER_KO[ch]) out += LETTER_KO[ch];
+    }
+    return out;
+  }
+
+  function phoneticVariants(t){
+    const list = [];
+    const spelled = spellKorean(extractLatinToken(t.term));
+    if (spelled) list.push(spelled);
+    if (PHONETIC_OVERRIDES[t.term]) list.push(...PHONETIC_OVERRIDES[t.term]);
+    return list;
+  }
+
   function score(rawQuery, t){
     const q = rawQuery.trim();
     if (!q) return 0;
@@ -766,6 +801,16 @@
     if (qn === nameN) return 100;
     if (nameN.includes(qn) && qn.length >= 2) return 88;
     if (qn.includes(nameN) && nameN.length >= 2) return 82;
+
+    if (/[가-힣]/.test(q)){
+      for (const variant of phoneticVariants(t)){
+        const vn = normalizeForMatch(variant);
+        if (!vn) continue;
+        if (qn === vn) return 97;
+        if ((vn.includes(qn) && qn.length >= 2) || (qn.includes(vn) && vn.length >= 2)) return 80;
+      }
+    }
+
     if (qn.length >= 2 && textIncludesWord(t.definition + " " + (t.detail || ""), q)) return 55;
     return similarity(qn, nameN) * 50;
   }
