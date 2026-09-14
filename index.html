@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>오리온 업무 용어사전</title>
+<title>오리온 용어 나무</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%B3</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root{
@@ -25,8 +25,16 @@
     --border:#E4E4E4;
     --danger:#D0492A;
     --success:#2E9E5B;
-    --chip-bg:#F2E1CC;
-    --chip-ink:#7A5220;
+    --extra-bg:#FFF6D9;
+    --extra-label-ink:#A8860A;
+    --link-ink:#8A8A8A;
+    --select-bg:#F7F7F7;
+    --select-border:#ECECEC;
+    --select-hover:#EFEFEF;
+    --select-viewed-bg:#FFFDF0;
+    --select-request-border:#C9C2A8;
+    --select-request-ink:#8A8578;
+    --time-ink:#5B6B78;
     --shadow:0 1px 1px rgba(0,0,0,.05);
     --menu-shadow:0 4px 18px rgba(0,0,0,.16);
   }
@@ -97,21 +105,6 @@
     #status span:last-child{display:none;}
   }
 
-  .chips{
-    display:flex; gap:8px; padding:10px 14px;
-    overflow-x:auto; background:var(--room-bg2);
-    border-bottom:1px solid rgba(0,0,0,.05);
-    flex-shrink:0;
-  }
-  .chips::-webkit-scrollbar{height:0;}
-  .chip{
-    flex:none; padding:6px 13px; border-radius:999px;
-    border:none; background:var(--surface); color:var(--ink);
-    font-size:12px; font-weight:500; cursor:pointer; box-shadow:var(--shadow);
-    font-family:inherit;
-  }
-  .chip:hover{background:var(--surface-2);}
-
   main{
     flex:1; overflow-y:auto;
     padding:16px 12px 20px;
@@ -121,54 +114,119 @@
       var(--room-bg);
   }
 
-  .row{display:flex; gap:8px; max-width:100%; margin:6px 0;}
-  .row.user{justify-content:flex-end;}
-  .row.bot{justify-content:flex-start; align-items:flex-end;}
-  .row.bot .bot-avatar{
-    width:30px; height:30px; border-radius:9px; flex-shrink:0;
+  /* ── 말풍선 공통 ── */
+  .bot-row{display:flex; align-items:flex-end; gap:8px; margin:10px 0 2px; max-width:88%;}
+  .bot-avatar{
+    width:34px; height:34px; border-radius:10px; flex-shrink:0;
     background:var(--on-yellow); color:var(--yellow);
-    display:flex; align-items:center; justify-content:center; font-size:15px;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
   }
+  .bot-col{display:flex; flex-direction:column; gap:4px; min-width:0;}
+  .bot-name{font-size:11px; color:var(--ink-soft); margin-left:2px;}
+  .bubble-wrap{display:flex; align-items:flex-end; gap:6px;}
+  .time{font-size:10px; color:var(--time-ink); white-space:nowrap; flex-shrink:0;}
 
-  .bubble{
-    max-width:78%;
-    padding:10px 13px;
+  .bubble-bot{
+    background:var(--surface);
+    border:1px solid var(--border);
     border-radius:4px 14px 14px 14px;
+    padding:10px 13px;
     font-size:14px;
     line-height:1.55;
     box-shadow:var(--shadow);
+    max-width:100%;
   }
-  .row.user .bubble{
+  .msg-user{
+    align-self:flex-end;
+    display:flex; align-items:flex-end; gap:6px;
+    margin:10px 0 2px; max-width:88%;
+  }
+  .bubble-user{
     background:var(--yellow);
     color:var(--on-yellow);
     border-radius:14px 4px 14px 14px;
+    padding:10px 13px;
+    font-size:14px;
+    line-height:1.5;
+    box-shadow:var(--shadow);
   }
-  .row.bot .bubble{
+
+  /* ── 웰컴 메시지 ── */
+  .welcome-bubble{max-width:320px; white-space:pre-line; font-size:13.5px; line-height:1.65;}
+
+  /* ── 퀵 액션 버튼 ── */
+  .quick-actions{display:flex; flex-wrap:wrap; gap:8px; max-width:320px; margin:2px 0 14px 42px;}
+  .quick-btn{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:11px 12px;
+    font-family:inherit; font-size:12px; font-weight:700; color:var(--ink);
+    cursor:pointer; box-shadow:var(--shadow); text-align:center;
+  }
+  .quick-btn:hover{background:var(--surface-2);}
+  .quick-btn:active{transform:scale(.98);}
+  @media (max-width:420px){ .quick-actions{margin-left:0; max-width:100%;} }
+
+  /* ── 용어 카드(리치 메시지) ── */
+  .card{
     background:var(--surface);
     border:1px solid var(--border);
-    padding:0;
+    border-radius:4px 14px 14px 14px;
     overflow:hidden;
+    box-shadow:var(--shadow);
+    width:100%;
+    max-width:320px;
   }
-  .bot-note{padding:11px 14px; color:var(--ink-soft); font-size:13.5px; max-width:300px;}
+  .card .cat-tag{
+    display:inline-block; font-size:10.5px; font-weight:700; color:var(--on-yellow);
+    background:var(--yellow); padding:3px 9px; border-radius:0 0 8px 0;
+  }
+  .card .body{padding:12px 14px 14px;}
+  .card .term{font-size:16.5px; font-weight:700; margin:6px 0 5px; color:var(--ink); font-family:"Noto Serif KR", serif;}
+  .card .def{font-size:13.5px; line-height:1.55; color:var(--ink); margin:0 0 9px; white-space:pre-line;}
+  .extra-box{
+    background:var(--extra-bg); border-left:3px solid var(--yellow-dark); border-radius:4px;
+    padding:8px 10px; margin:0 0 10px; font-size:12.5px; line-height:1.6;
+    color:var(--ink-soft); white-space:pre-line;
+  }
+  .extra-box .extra-label{display:block; font-size:10.5px; font-weight:700; color:var(--extra-label-ink); margin-bottom:3px;}
+  .request-link{
+    background:none; border:none; padding:0; font-size:11.5px; color:var(--link-ink);
+    text-decoration:underline; cursor:pointer; font-family:inherit;
+  }
+  .request-link:hover{color:var(--ink-soft);}
+  .btn-request{
+    background:var(--yellow); color:var(--on-yellow); border:none; border-radius:18px;
+    padding:9px 16px; font-family:inherit; font-weight:700; font-size:12.5px;
+    cursor:pointer; align-self:flex-start;
+  }
+  .btn-request:hover{background:var(--yellow-dark);}
 
-  .term-card{padding:13px 15px;}
-  .term-card + .term-card{border-top:1px solid var(--border);}
-  .term-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px;}
-  .term-name{font-family:"Noto Serif KR", serif; font-weight:700; font-size:16px; color:var(--ink);}
-  .term-cat{
-    flex:none; font-size:10.5px; color:var(--chip-ink); background:var(--chip-bg);
-    padding:2px 8px; border-radius:999px; letter-spacing:.02em;
+  /* ── 선택지 목록 (여러 후보 / TOP5 / 최신 / 카테고리) ── */
+  .select-bubble{display:flex; flex-direction:column; gap:8px; max-width:300px;}
+  .select-prompt{margin:0; font-size:14px;}
+  .select-list{display:flex; flex-direction:column; gap:6px;}
+  .select-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--select-bg); border:1px solid var(--select-border); border-radius:9px;
+    padding:9px 12px; font-family:inherit; font-size:13px; font-weight:500; color:var(--ink);
+    cursor:pointer; text-align:left;
   }
-  .term-def{font-size:13.5px; color:var(--ink); margin:0 0 4px; white-space:pre-line;}
-  .term-detail{font-size:12px; color:var(--ink-faint); margin:0; white-space:pre-line;}
+  .select-item:hover{background:var(--select-hover);}
+  .select-item.viewed{border-color:var(--yellow-dark); background:var(--select-viewed-bg);}
+  .select-item .select-cat{
+    font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--yellow);
+    padding:2px 7px; border-radius:8px; flex-shrink:0;
+  }
+  .select-item-request{
+    background:#fff; border:1px dashed var(--select-request-border); color:var(--select-request-ink);
+    justify-content:center;
+  }
+  .select-item-request:hover{background:#FBFAF5;}
+  .no-match-wrap{display:flex; flex-direction:column; gap:10px; align-items:flex-start; padding:11px 14px; max-width:300px;}
 
   /* ── 피드백 폼 카드 ── */
-  .feedback-card{
-    background:var(--surface);
-    padding:14px 16px;
-    width:100%;
-    max-width:300px;
-  }
+  .feedback-card{background:var(--surface); padding:14px 16px; width:100%; max-width:300px;}
   .feedback-card h3{font-size:14px; font-weight:700; margin:0 0 8px; color:var(--ink);}
   .feedback-card label{display:block; font-size:10.5px; font-weight:700; color:var(--ink-soft); margin:9px 0 4px;}
   .feedback-card input, .feedback-card textarea{
@@ -179,12 +237,6 @@
   .feedback-card input:focus, .feedback-card textarea:focus{outline:2px solid var(--yellow-dark); outline-offset:1px;}
   .feedback-card textarea{min-height:60px;}
   .feedback-actions{display:flex; gap:8px; margin-top:11px;}
-  .btn-request{
-    background:var(--yellow); color:var(--on-yellow); border:none;
-    border-radius:18px; padding:8px 16px; font-size:12px; font-weight:700;
-    cursor:pointer; font-family:inherit;
-  }
-  .btn-request:hover{background:var(--yellow-dark);}
   .btn-cancel{
     background:var(--surface-2); color:var(--ink-soft); border:none;
     border-radius:18px; padding:8px 14px; font-size:12px; font-weight:700;
@@ -240,12 +292,12 @@
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
   }
   button.send:hover{background:var(--yellow-dark);}
-  button.send:focus-visible, .chip:focus-visible, .plus-btn:focus-visible{
+  button.send:focus-visible, .plus-btn:focus-visible, .select-item:focus-visible, .quick-btn:focus-visible{
     outline:2px solid var(--ink); outline-offset:2px;
   }
 
   @media (prefers-reduced-motion:no-preference){
-    .row{animation:rise .16s ease-out;}
+    .bot-row, .msg-user{animation:rise .16s ease-out;}
   }
   @keyframes rise{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
 </style>
@@ -254,15 +306,13 @@
 
 <div id="app">
 <header>
-  <div class="avatar">📖</div>
+  <div class="avatar">🌳</div>
   <div class="titles">
-    <h1>오리온 업무 용어사전</h1>
-    <div class="sub">사내 용어 사전 · 궁금한 걸 바로 물어보세요</div>
+    <h1>오리온 용어 나무</h1>
+    <div class="sub">질문을 받고 자라는 오리온 용어 나무입니다 :)</div>
   </div>
   <div id="status"><span class="dot"></span><span id="status-text">연결 확인 중...</span></div>
 </header>
-
-<div class="chips" id="chips"></div>
 
 <main id="thread"></main>
 
@@ -291,7 +341,6 @@
   let TERMS = [];
 
   const thread = document.getElementById("thread");
-  const chips = document.getElementById("chips");
   const form = document.getElementById("chatform");
   const input = document.getElementById("askInput");
   const statusEl = document.getElementById("status");
@@ -299,6 +348,122 @@
   const plusBtn = document.getElementById("plusBtn");
   const plusMenu = document.getElementById("plusMenu");
   const requestUpdateBtn = document.getElementById("requestUpdateBtn");
+
+  /* ========================================================
+     혼동하기 쉬운 용어끼리 서로 안내해주는 목록 (수동 큐레이션)
+     ======================================================== */
+  const RELATED = {
+    "순매출": ["출고가 (= 총매출)", "출고매출 (= 순매출)", "실매출 (= POS매출)"],
+    "출고가 (= 총매출)": ["차감 전 출고매출", "출고매출 (= 순매출)", "실매출 (= POS매출)"],
+    "차감 전 출고매출": ["출고가 (= 총매출)", "출고매출 (= 순매출)"],
+    "출고매출 (= 순매출)": ["차감 전 출고매출", "실매출 (= POS매출)", "순매출"],
+    "실매출 (= POS매출)": ["출고매출 (= 순매출)", "순매출"],
+
+    "안전 재고일수": ["창고 재고일수", "매대 재고일수", "재고일수"],
+    "창고 재고일수": ["안전 재고일수", "매대 재고일수", "재고일수"],
+    "매대 재고일수": ["안전 재고일수", "창고 재고일수", "재고일수"],
+    "재고일수": ["안전 재고일수", "창고 재고일수", "매대 재고일수"],
+
+    "계약DC1 (Discount)": ["계약DC2 (Discount)", "할인1", "할인2"],
+    "계약DC2 (Discount)": ["계약DC1 (Discount)", "할인1", "할인2"],
+    "할인1": ["할인2", "계약DC1 (Discount)", "계약DC2 (Discount)"],
+    "할인2": ["할인1", "계약DC1 (Discount)", "계약DC2 (Discount)"],
+
+    "건설중인자산": ["완성자산", "투자 약정", "투자 실적"],
+    "완성자산": ["건설중인자산", "투자 정산"],
+    "투자 약정": ["투자 실적", "투자 정산", "건설중인자산"],
+    "투자 실적": ["투자 약정", "투자 정산", "건설중인자산"],
+    "투자 정산": ["투자 실적", "투자 약정", "완성자산"],
+
+    "준하이퍼 / 초대형 매장": ["준하이퍼", "대형 이하 매장"],
+    "준하이퍼": ["준하이퍼 / 초대형 매장", "대리점", "MT", "TT"],
+    "대형 이하 매장": ["준하이퍼 / 초대형 매장"],
+
+    "MT": ["TT", "준하이퍼", "대리점"],
+    "TT": ["MT", "T/T (Telegraphic transfer) (전신환송금방식)", "준하이퍼"],
+    "대리점": ["특약점", "준하이퍼"],
+    "특약점": ["대리점"],
+    "CS": ["MT", "준하이퍼 / 초대형 매장"],
+
+    "PS": ["S-DTS", "SM", "MD"],
+    "S-DTS": ["PS", "SM", "MD"],
+    "SM": ["PS", "S-DTS", "MD"],
+    "MD": ["PS", "S-DTS", "SM"],
+
+    "QA": ["QM", "PM"],
+    "QM": ["QA", "PM"],
+    "PM": ["QA", "QM"],
+
+    "LIMS": ["TCP", "FLI"],
+    "TCP": ["LIMS", "QMS"],
+    "FLI": ["LIMS"],
+    "QMS": ["HACCP", "FSSC 22000", "GMP", "TCP"],
+    "HACCP": ["QMS", "FSSC 22000", "GMP"],
+    "FSSC 22000": ["HACCP", "QMS", "GMP"],
+    "GMP": ["HACCP", "QMS", "FSSC 22000"],
+    "CVP": ["GSA"],
+    "GSA": ["CVP"],
+
+    "G/R (Good Receipt) (입고처리)": ["I/R (Invoice Receipt) (송장처리)"],
+    "I/R (Invoice Receipt) (송장처리)": ["G/R (Good Receipt) (입고처리)", "Invoice (송장/인보이스)"],
+
+    "L/C (Letter of Credit) (신용장)": ["D/P (Documents against Payment) (지급인도조건)", "T/T (Telegraphic transfer) (전신환송금방식)"],
+    "D/P (Documents against Payment) (지급인도조건)": ["L/C (Letter of Credit) (신용장)", "T/T (Telegraphic transfer) (전신환송금방식)"],
+    "T/T (Telegraphic transfer) (전신환송금방식)": ["L/C (Letter of Credit) (신용장)", "D/P (Documents against Payment) (지급인도조건)", "TT"],
+
+    "ETD (Estimated Time of Departure) (출발 예정 시각)": ["ETA (Estimated Time of Arrival) (도착예정일)"],
+    "ETA (Estimated Time of Arrival) (도착예정일)": ["ETD (Estimated Time of Departure) (출발 예정 시각)"],
+
+    "BOM (Bill of Material) (자재 명세서)": ["대체 BOM", "Routing (라우팅)"],
+    "대체 BOM": ["BOM (Bill of Material) (자재 명세서)"],
+    "Routing (라우팅)": ["BOM (Bill of Material) (자재 명세서)"],
+
+    "계정상세": ["원가요소", "코스트센터"],
+    "원가요소": ["계정상세", "코스트센터"],
+    "코스트센터": ["계정상세", "원가요소"],
+
+    "반제 (Clearing)": ["역분개 (Reversal)"],
+    "역분개 (Reversal)": ["반제 (Clearing)"],
+
+    "전기일자 (Posting date)": ["증빙일자 (Document date)"],
+    "증빙일자 (Document date)": ["전기일자 (Posting date)"],
+
+    "엔드/엔캡": ["랙", "댕글러", "헤더", "ISP"],
+    "랙": ["엔드/엔캡", "POG"],
+    "댕글러": ["헤더", "ISP"],
+    "헤더": ["댕글러", "ISP"],
+    "ISP": ["댕글러", "헤더", "RRP"],
+    "RRP": ["ISP"],
+
+    "PA": ["부동재고"],
+    "부동재고": ["PA", "재고일수"],
+
+    "취급률": ["분포율"],
+    "분포율": ["취급률"],
+
+    "소비자가": ["예상판매가"],
+    "예상판매가": ["소비자가"],
+
+    "BP(Business Partner)": ["거래처", "공급업체", "파트너 기능"],
+    "거래처": ["BP(Business Partner)", "공급업체", "파트너 기능"],
+    "공급업체": ["BP(Business Partner)", "거래처"],
+    "파트너 기능": ["BP(Business Partner)", "거래처"],
+
+    "Invoice (송장/인보이스)": ["Invoice unit (정산단위)", "I/R (Invoice Receipt) (송장처리)"],
+    "Invoice unit (정산단위)": ["Price unit (가격단위)", "Order unit (오더단위)", "Invoice (송장/인보이스)"],
+    "Price unit (가격단위)": ["Order unit (오더단위)", "Invoice unit (정산단위)"],
+    "Order unit (오더단위)": ["Price unit (가격단위)", "Invoice unit (정산단위)"],
+
+    "생산능력(CAPA)": ["가동율"],
+    "가동율": ["생산능력(CAPA)"],
+
+    "매출원가": ["제조원가"],
+    "제조원가": ["매출원가", "노경비"],
+    "노경비": ["제조원가"],
+
+    "PB": ["NB"],
+    "NB": ["PB"]
+  };
 
   function setStatus(text, live){
     statusText.textContent = text;
@@ -310,7 +475,8 @@
       term: (row["용어"] || "").trim(),
       definition: (row["설명"] || "").trim(),
       detail: (row["추가설명"] || "").toString().trim(),
-      category: (row["카테고리"] || "기타").trim()
+      category: (row["카테고리"] || "기타").trim(),
+      views: Number(row["조회수"]) || 0
     };
   }
 
@@ -319,7 +485,6 @@
     return parsed.data.map(normalizeRow).filter(t => t.term);
   }
 
-  let chipsRendered = false;
   async function refreshTerms(initial){
     try {
       const res = await fetch(CSV_URL, { cache: "no-store" });
@@ -329,10 +494,6 @@
       if (!next.length) throw new Error("빈 데이터");
       TERMS = next;
       setStatus("실시간 연동 · 용어 " + TERMS.length + "개", true);
-      if (!chipsRendered){
-        renderChips();
-        chipsRendered = true;
-      }
     } catch (err) {
       if (initial) {
         setStatus("연결 실패 · 새로고침 해주세요", false);
@@ -342,49 +503,230 @@
     }
   }
 
-  function addRow(role, node, opts){
-    opts = opts || {};
-    const row = document.createElement("div");
-    row.className = "row " + role;
-    if (role === "bot" && !opts.noAvatar){
-      const av = document.createElement("div");
-      av.className = "bot-avatar";
-      av.textContent = "📖";
-      row.appendChild(av);
-    }
+  /* ========================================================
+     렌더링 helper
+     ======================================================== */
+  function nowLabel(){
+    return new Date().toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
+  function addUserMsg(text){
+    const el = document.createElement("div");
+    el.className = "msg-user";
     const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    if (typeof node === "string") {
-      bubble.textContent = node;
-    } else {
-      bubble.appendChild(node);
-    }
-    row.appendChild(bubble);
+    bubble.className = "bubble-user";
+    bubble.textContent = text;
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = nowLabel();
+    el.appendChild(bubble);
+    el.appendChild(time);
+    thread.appendChild(el);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function botRow(innerNode){
+    const row = document.createElement("div");
+    row.className = "bot-row";
+    const avatar = document.createElement("div");
+    avatar.className = "bot-avatar";
+    avatar.textContent = "🌳";
+    const col = document.createElement("div");
+    col.className = "bot-col";
+    const name = document.createElement("div");
+    name.className = "bot-name";
+    name.textContent = "오리온 용어 나무";
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap";
+    wrap.appendChild(innerNode);
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = nowLabel();
+    wrap.appendChild(time);
+    col.appendChild(name);
+    col.appendChild(wrap);
+    row.appendChild(avatar);
+    row.appendChild(col);
     thread.appendChild(row);
     thread.scrollTop = thread.scrollHeight;
     return row;
   }
 
-  function renderTermCards(matches){
-    const wrap = document.createElement("div");
-    matches.forEach(t => {
-      const card = document.createElement("div");
-      card.className = "term-card";
-      card.innerHTML =
-        '<div class="term-head"><span class="term-name"></span><span class="term-cat"></span></div>' +
-        '<p class="term-def"></p><p class="term-detail"></p>';
-      card.querySelector(".term-name").textContent = t.term;
-      card.querySelector(".term-cat").textContent = t.category;
-      card.querySelector(".term-def").textContent = t.definition;
-      card.querySelector(".term-detail").textContent = t.detail || "";
-      wrap.appendChild(card);
-    });
-    return wrap;
+  function plainBubble(text, extraClass){
+    const b = document.createElement("div");
+    b.className = "bubble-bot" + (extraClass ? " " + extraClass : "");
+    b.textContent = text;
+    return b;
   }
 
-  // ---------- 검색 로직 (띄어쓰기 차이 무시 + 유사도 매칭) ----------
+  /* ========================================================
+     용어 카드
+     ======================================================== */
+  function addCard(t){
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const tag = document.createElement("span");
+    tag.className = "cat-tag";
+    tag.textContent = t.category;
+    card.appendChild(tag);
+
+    const body = document.createElement("div");
+    body.className = "body";
+
+    const termEl = document.createElement("p");
+    termEl.className = "term";
+    termEl.textContent = t.term;
+    body.appendChild(termEl);
+
+    const defEl = document.createElement("p");
+    defEl.className = "def";
+    defEl.textContent = t.definition;
+    body.appendChild(defEl);
+
+    if (t.detail){
+      const box = document.createElement("div");
+      box.className = "extra-box";
+      const label = document.createElement("span");
+      label.className = "extra-label";
+      label.textContent = "💡 추가 설명";
+      box.appendChild(label);
+      const detailText = document.createElement("div");
+      detailText.textContent = t.detail;
+      box.appendChild(detailText);
+      body.appendChild(box);
+    }
+
+    const reqBtn = document.createElement("button");
+    reqBtn.type = "button";
+    reqBtn.className = "request-link";
+    reqBtn.textContent = "이 설명이 부정확한가요? 수정 요청";
+    reqBtn.addEventListener("click", () => openFeedbackForm(t.term, "수정"));
+    body.appendChild(reqBtn);
+
+    card.appendChild(body);
+    botRow(card);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    suggestRelated(t);
+  }
+
+  function suggestRelated(t){
+    const names = RELATED[t.term];
+    if (!names || !names.length) return;
+    const relTerms = names.map(n => TERMS.find(x => x.term === n)).filter(Boolean);
+    if (!relTerms.length) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "select-bubble";
+    const p = document.createElement("p");
+    p.className = "select-prompt";
+    p.textContent = "혹시 이 용어도 궁금하신가요?";
+    wrap.appendChild(p);
+
+    const list = document.createElement("div");
+    list.className = "select-list";
+    relTerms.forEach(rt => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "select-item";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = rt.term;
+      const catSpan = document.createElement("span");
+      catSpan.className = "select-cat";
+      catSpan.textContent = rt.category;
+      btn.appendChild(nameSpan);
+      btn.appendChild(catSpan);
+      btn.addEventListener("click", () => {
+        btn.classList.add("viewed");
+        addCard(rt);
+      });
+      list.appendChild(btn);
+    });
+    wrap.appendChild(list);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  /* ========================================================
+     선택 목록 (여러 후보 매칭)
+     ======================================================== */
+  function addSelection(query, matches){
+    const wrap = document.createElement("div");
+    wrap.className = "select-bubble";
+    const p = document.createElement("p");
+    p.className = "select-prompt";
+    p.textContent = "다음 중 찾으시는 용어가 있나요?";
+    wrap.appendChild(p);
+
+    const list = document.createElement("div");
+    list.className = "select-list";
+    matches.forEach(t => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "select-item";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = t.term;
+      const catSpan = document.createElement("span");
+      catSpan.className = "select-cat";
+      catSpan.textContent = t.category;
+      btn.appendChild(nameSpan);
+      btn.appendChild(catSpan);
+      btn.addEventListener("click", () => {
+        btn.classList.add("viewed");
+        addCard(t);
+      });
+      list.appendChild(btn);
+    });
+
+    const reqBtn = document.createElement("button");
+    reqBtn.type = "button";
+    reqBtn.className = "select-item select-item-request";
+    reqBtn.textContent = "찾는 용어가 없어요 (등록 요청)";
+    reqBtn.addEventListener("click", () => openFeedbackForm(query, "신규 등록"));
+    list.appendChild(reqBtn);
+
+    wrap.appendChild(list);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  function addNoMatch(query){
+    const wrap = document.createElement("div");
+    wrap.className = "no-match-wrap";
+    const span = document.createElement("span");
+    span.textContent = "일치하는 용어를 찾지 못했어요 🥲";
+    wrap.appendChild(span);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-request";
+    btn.textContent = "용어 등록 요청하기";
+    btn.addEventListener("click", () => openFeedbackForm(query, "신규 등록"));
+    wrap.appendChild(btn);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  /* ========================================================
+     검색 로직 — 띄어쓰기 차이 무시 + 유사도 매칭
+     (짧은 영문 약어가 다른 단어 안에 우연히 포함돼 오검색되는 문제 방지:
+      영문/숫자 질의는 단어경계 정규식으로, 카테고리명은 매칭 대상에서 제외)
+     ======================================================== */
   function normalizeForMatch(s){
-    return (s || "").toLowerCase().replace(/[\s 　﻿]+/g, "");
+    return (s || "").toLowerCase().replace(/[\s 　﻿]+/g, "");
+  }
+
+  function isLatinQuery(q){
+    return /^[a-zA-Z0-9/&().\-_,: ]+$/.test(q);
+  }
+
+  function textIncludesWord(text, rawQuery){
+    if (!text) return false;
+    if (isLatinQuery(rawQuery)){
+      const esc = rawQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp("(?<![a-zA-Z0-9])" + esc + "(?![a-zA-Z0-9])", "i");
+      return re.test(text);
+    }
+    return normalizeForMatch(text).includes(normalizeForMatch(rawQuery));
   }
 
   function levenshtein(a, b){
@@ -405,100 +747,308 @@
     return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
   }
 
-  function score(query, t){
-    const q = normalizeForMatch(query);
-    const name = normalizeForMatch(t.term);
-    if (!q || !name) return 0;
-    if (q === name) return 100;
-    if (name.includes(q) && q.length >= 2) return 88;
-    if (q.includes(name)) return 82;
-    if (normalizeForMatch(t.definition).includes(q) || normalizeForMatch(t.detail).includes(q) || normalizeForMatch(t.category).includes(q)) return 60;
-    return similarity(q, name) * 55;
+  function score(rawQuery, t){
+    const q = rawQuery.trim();
+    if (!q) return 0;
+    const qn = normalizeForMatch(q);
+    const nameN = normalizeForMatch(t.term);
+    if (!nameN) return 0;
+    if (qn === nameN) return 100;
+    if (nameN.includes(qn) && qn.length >= 2) return 88;
+    if (qn.includes(nameN) && nameN.length >= 2) return 82;
+    if (qn.length >= 2 && textIncludesWord(t.definition + " " + (t.detail || ""), q)) return 55;
+    return similarity(qn, nameN) * 50;
   }
 
   function search(query){
     return TERMS
       .map(t => ({ t, s: score(query, t) }))
       .filter(x => x.s >= 40)
-      .sort((a, b) => b.s - a.s)
-      .slice(0, 5)
-      .map(x => x.t);
+      .sort((a, b) => b.s - a.s);
   }
 
   function handleQuery(query){
-    addRow("user", query, { noAvatar: true });
-    const matches = search(query);
-    if (matches.length){
-      addRow("bot", renderTermCards(matches));
+    addUserMsg(query);
+    const results = search(query);
+    if (results.length === 0){
+      addNoMatch(query);
+    } else if (results.length === 1 || results[0].s === 100){
+      addCard(results[0].t);
     } else {
-      const note = document.createElement("div");
-      note.className = "bot-note";
-      note.textContent = "\"" + query + "\"와(과) 일치하는 용어를 찾지 못했어요. 표현을 바꿔서 검색해보시거나, + 버튼으로 용어 업데이트를 요청해주세요.";
-      addRow("bot", note);
+      addSelection(query, results.slice(0, 3).map(r => r.t));
     }
   }
 
   form.addEventListener("submit", e => {
     e.preventDefault();
-    const q = input.value;
-    if (!q.trim()) return;
-    handleQuery(q);
+    const q = input.value.trim();
+    if (!q) return;
     input.value = "";
-    input.focus();
+    handleQuery(q);
   });
 
-  function renderChips(){
-    chips.innerHTML = "";
-    const cats = [...new Set(TERMS.map(t => t.category))];
-    cats.forEach(cat => {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "chip";
-      chip.textContent = cat;
-      chip.addEventListener("click", () => handleQuery(cat));
-      chips.appendChild(chip);
-    });
+  /* ========================================================
+     웰컴 메시지 + 퀵 액션(TOP5 / 최신 추가 / 카테고리 보기)
+     ======================================================== */
+  function addWelcomeMessage(){
+    const bubble = plainBubble("", "welcome-bubble");
+    bubble.textContent =
+`안녕하세요! 오리온 사내 용어 해결사, 🌳오리온 용어 나무🌳입니다!
+업무 중 마주친 낯선 약어나 헷갈리는 사내 용어,
+이제 저에게 편하게 물어보세요!
+
+🌳오리온 용어 나무🌳는 여러분의 관심으로 자라납니다!💡
+임직원 여러분이 던져주시는 질문과 피드백을 먹고 성장하고 있어요.
+
+아직 모르는 단어가 있을 수도 있지만, 여러분이 자주 사용하고 적극적으로 의견을 남길수록 더욱 풍성하고 똑똑한 답변을 드릴 수 있답니다.
+
+자, 오늘 어떤 용어가 궁금하신가요?
+지금 바로 입력해 주세요!`;
+    botRow(bubble);
   }
 
-  // ---------- + 버튼 드롭다운 ----------
-  plusBtn.addEventListener("click", () => {
-    plusBtn.classList.toggle("open");
-    plusMenu.classList.toggle("show");
+  function addQuickActions(){
+    const grid = document.createElement("div");
+    grid.className = "quick-actions";
+
+    const mk = (icon, label, action) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "quick-btn";
+      const ic = document.createElement("span");
+      ic.textContent = icon + " ";
+      btn.appendChild(ic);
+      btn.appendChild(document.createTextNode(label));
+      btn.addEventListener("click", () => handleQuickAction(action));
+      return btn;
+    };
+
+    grid.appendChild(mk("🔥", "가장 많이 검색한 TOP5", "top5"));
+    grid.appendChild(mk("🆕", "최신 추가 용어", "recent"));
+    grid.appendChild(mk("🗂", "카테고리 보기", "categories"));
+    thread.appendChild(grid);
+  }
+
+  function computeTop5(){
+    return TERMS.slice()
+      .filter(t => (t.views || 0) > 0)
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 5);
+  }
+
+  function computeRecent(){
+    // 등록일 컬럼이 없어서, 시트에서 나중에 추가된(=아래쪽) 행을 최신순으로 간주
+    return TERMS.slice(-5).reverse();
+  }
+
+  function handleQuickAction(action){
+    if (!TERMS.length){
+      botRow(plainBubble("아직 용어를 불러오는 중이에요. 잠시 후 다시 눌러주세요 🙏"));
+      return;
+    }
+
+    if (action === "categories"){
+      showCategoryList();
+      return;
+    }
+
+    const isTop5 = action === "top5";
+    const list = isTop5 ? computeTop5() : computeRecent();
+    const label = isTop5 ? "🔥 가장 많이 검색한 TOP5 용어" : "🆕 최신 추가된 용어";
+
+    if (!list.length){
+      botRow(plainBubble(isTop5
+        ? "아직 집계된 조회수가 없어요. 용어를 검색해보면 여기에 쌓이기 시작해요!"
+        : "아직 표시할 용어가 없어요."));
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "select-bubble";
+    const p = document.createElement("p");
+    p.className = "select-prompt";
+    p.textContent = label;
+    wrap.appendChild(p);
+
+    const listEl = document.createElement("div");
+    listEl.className = "select-list";
+    list.forEach((t, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "select-item";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = t.term;
+      const badge = document.createElement("span");
+      badge.className = "select-cat";
+      badge.textContent = isTop5 ? (idx + 1) + "위" : t.category;
+      btn.appendChild(nameSpan);
+      btn.appendChild(badge);
+      btn.addEventListener("click", () => {
+        btn.classList.add("viewed");
+        addCard(t);
+      });
+      listEl.appendChild(btn);
+    });
+    wrap.appendChild(listEl);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  function showCategoryList(){
+    const cats = [...new Set(TERMS.map(t => t.category))];
+    const counts = {};
+    TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
+
+    const wrap = document.createElement("div");
+    wrap.className = "select-bubble";
+    const p = document.createElement("p");
+    p.className = "select-prompt";
+    p.textContent = "🗂 어떤 카테고리가 궁금하신가요?";
+    wrap.appendChild(p);
+
+    const list = document.createElement("div");
+    list.className = "select-list";
+    cats.forEach(cat => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "select-item";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = cat;
+      const badge = document.createElement("span");
+      badge.className = "select-cat";
+      badge.textContent = counts[cat] + "개";
+      btn.appendChild(nameSpan);
+      btn.appendChild(badge);
+      btn.addEventListener("click", () => {
+        btn.classList.add("viewed");
+        showCategoryTerms(cat);
+      });
+      list.appendChild(btn);
+    });
+    wrap.appendChild(list);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  function showCategoryTerms(cat){
+    const list = TERMS.filter(t => t.category === cat);
+    const wrap = document.createElement("div");
+    wrap.className = "select-bubble";
+    const p = document.createElement("p");
+    p.className = "select-prompt";
+    p.textContent = "📂 \"" + cat + "\" 카테고리 용어 (" + list.length + "개)";
+    wrap.appendChild(p);
+
+    const listEl = document.createElement("div");
+    listEl.className = "select-list";
+    list.forEach(t => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "select-item";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = t.term;
+      const badge = document.createElement("span");
+      badge.className = "select-cat";
+      badge.textContent = cat;
+      btn.appendChild(nameSpan);
+      btn.appendChild(badge);
+      btn.addEventListener("click", () => {
+        btn.classList.add("viewed");
+        addCard(t);
+      });
+      listEl.appendChild(btn);
+    });
+    wrap.appendChild(listEl);
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  /* ========================================================
+     + 버튼 드롭다운
+     ======================================================== */
+  plusBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = plusMenu.classList.toggle("show");
+    plusBtn.classList.toggle("open", isOpen);
   });
   document.addEventListener("click", (e) => {
-    if (!plusBtn.contains(e.target) && !plusMenu.contains(e.target)){
-      plusBtn.classList.remove("open");
+    if (!plusMenu.contains(e.target) && e.target !== plusBtn){
       plusMenu.classList.remove("show");
+      plusBtn.classList.remove("open");
     }
   });
   requestUpdateBtn.addEventListener("click", () => {
-    plusBtn.classList.remove("open");
     plusMenu.classList.remove("show");
-    openFeedbackForm();
+    plusBtn.classList.remove("open");
+    openFeedbackForm(input.value.trim(), "업데이트 요청");
   });
 
-  // ---------- 피드백(용어 업데이트 요청) ----------
-  function openFeedbackForm(){
+  /* ========================================================
+     피드백(용어 등록/수정/업데이트 요청)
+     ======================================================== */
+  function openFeedbackForm(termName, mode){
+    const titleMap = {
+      "신규 등록": "📝 용어 등록 요청",
+      "수정": "✏️ 용어 수정 요청",
+      "업데이트 요청": "🔄 용어 업데이트 요청"
+    };
     const card = document.createElement("div");
     card.className = "feedback-card";
-    card.innerHTML = `
-      <h3>📝 용어 업데이트 요청</h3>
-      <label>용어명</label>
-      <input type="text" class="fb-term" placeholder="예: POG" />
-      <label>요청 내용</label>
-      <textarea class="fb-message" placeholder="추가하거나 수정하고 싶은 내용을 적어주세요"></textarea>
-      <label>이름 / 부서 (선택)</label>
-      <input type="text" class="fb-requester" placeholder="예: 홍길동 / 마케팅팀" />
-      <div class="feedback-actions">
-        <button type="button" class="btn-request fb-submit">요청 보내기</button>
-        <button type="button" class="btn-cancel fb-cancel">취소</button>
-      </div>
-      <div class="feedback-status"></div>
-    `;
-    const row = addRow("bot", card);
-    row.scrollIntoView({ behavior: "smooth", block: "center" });
-    card.querySelector(".fb-cancel").addEventListener("click", () => row.remove());
-    card.querySelector(".fb-submit").addEventListener("click", () => submitFeedback(card));
+
+    const h3 = document.createElement("h3");
+    h3.textContent = titleMap[mode] || "📝 용어 업데이트 요청";
+    card.appendChild(h3);
+
+    const termLabel = document.createElement("label");
+    termLabel.textContent = "용어명";
+    card.appendChild(termLabel);
+    const termInput = document.createElement("input");
+    termInput.type = "text";
+    termInput.className = "fb-term";
+    termInput.placeholder = "예: POG";
+    termInput.value = termName || "";
+    card.appendChild(termInput);
+
+    const msgLabel = document.createElement("label");
+    msgLabel.textContent = "요청 내용";
+    card.appendChild(msgLabel);
+    const msgInput = document.createElement("textarea");
+    msgInput.className = "fb-message";
+    msgInput.placeholder = "추가하거나 수정하고 싶은 내용을 적어주세요";
+    card.appendChild(msgInput);
+
+    const reqLabel = document.createElement("label");
+    reqLabel.textContent = "이름 / 부서 (선택)";
+    card.appendChild(reqLabel);
+    const reqInput = document.createElement("input");
+    reqInput.type = "text";
+    reqInput.className = "fb-requester";
+    reqInput.placeholder = "예: 홍길동 / 마케팅팀";
+    card.appendChild(reqInput);
+
+    const actions = document.createElement("div");
+    actions.className = "feedback-actions";
+    const submitBtn = document.createElement("button");
+    submitBtn.type = "button";
+    submitBtn.className = "btn-request fb-submit";
+    submitBtn.textContent = "요청 보내기";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "btn-cancel";
+    cancelBtn.textContent = "취소";
+    actions.appendChild(submitBtn);
+    actions.appendChild(cancelBtn);
+    card.appendChild(actions);
+
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "feedback-status";
+    card.appendChild(statusDiv);
+
+    const row = botRow(card);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+
+    cancelBtn.addEventListener("click", () => row.remove());
+    submitBtn.addEventListener("click", () => submitFeedback(card));
   }
 
   async function submitFeedback(card){
@@ -525,23 +1075,29 @@
       if (!res.ok || !result.ok) {
         throw new Error(result.error || ("서버 응답 오류 (" + res.status + ")"));
       }
-      card.innerHTML = `
-        <div class="fb-done">
-          <span class="fb-done-title">✅ 요청 완료</span>
-          <span class="fb-done-sub">"${term.replace(/</g, "&lt;")}" 요청이 접수됐어요. 검토 후 반영해드릴게요!</span>
-        </div>`;
+      card.innerHTML = "";
+      const done = document.createElement("div");
+      done.className = "fb-done";
+      const t1 = document.createElement("span");
+      t1.className = "fb-done-title";
+      t1.textContent = "✅ 요청 완료";
+      const t2 = document.createElement("span");
+      t2.className = "fb-done-sub";
+      t2.textContent = "\"" + term + "\" 요청이 접수됐어요. 검토 후 반영해드릴게요!";
+      done.appendChild(t1);
+      done.appendChild(t2);
+      card.appendChild(done);
     } catch (err) {
       statusEl2.textContent = "전송 실패: " + (err && err.message ? err.message : "잠시 후 다시 시도해주세요.");
       statusEl2.className = "feedback-status err";
     }
   }
 
-  // ---------- 시작 ----------
-  const greetNote = document.createElement("div");
-  greetNote.className = "bot-note";
-  greetNote.textContent = "안녕하세요! 영업·생산·구매·재경·품질 등 사내 업무 용어를 검색해 드려요. 용어를 입력하거나 위 카테고리를 눌러보세요. 없는 용어는 + 버튼으로 등록 요청도 가능해요.";
-  addRow("bot", greetNote);
-
+  /* ========================================================
+     시작
+     ======================================================== */
+  addWelcomeMessage();
+  addQuickActions();
   refreshTerms(true);
   setInterval(() => refreshTerms(false), REFRESH_INTERVAL_MS);
 </script>
