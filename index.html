@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오리온 업무 용어사전</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --yellow:#FEE500;
+    --yellow-dark:#F5D900;
+    --on-yellow:#3C1E1E;
+    --ink:#3C1E1E;
+    --ink-soft:#664242;
+    --ink-faint:#9C8181;
+    --room-bg:#ABC4D6;
+    --room-bg2:#B7CFDF;
+    --app-bg:#DDE3E8;
+    --surface:#FFFFFF;
+    --surface-2:#F7F7F7;
+    --input-bg:#F2F2F2;
+    --border:#E4E4E4;
+    --danger:#D0492A;
+    --success:#2E9E5B;
+    --chip-bg:#F2E1CC;
+    --chip-ink:#7A5220;
+    --shadow:0 1px 1px rgba(0,0,0,.05);
+    --menu-shadow:0 4px 18px rgba(0,0,0,.16);
+  }
+  *{box-sizing:border-box;}
+  html{overflow-x:hidden;}
+  body{
+    margin:0;
+    font-family:"Noto Sans KR", system-ui, sans-serif;
+    color:var(--ink);
+    background:var(--app-bg);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    overflow-x:hidden;
+  }
+  #app{
+    width:100%;
+    max-width:720px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--room-bg);
+    position:relative;
+  }
+  @media (min-width:760px){
+    body{padding:28px 16px;}
+    #app{
+      min-height:calc(100vh - 56px);
+      max-height:calc(100vh - 56px);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 12px 40px rgba(0,0,0,.22);
+    }
+  }
+
+  header{
+    background:var(--yellow);
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    box-shadow:0 1px 0 rgba(0,0,0,.06);
+    position:sticky;
+    top:0;
+    z-index:5;
+    flex-shrink:0;
+  }
+  header .avatar{
+    width:38px; height:38px; border-radius:11px;
+    background:var(--on-yellow);
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; flex-shrink:0;
+  }
+  header .titles{flex:1; min-width:0;}
+  header h1{font-size:16px; font-weight:700; margin:0; color:var(--on-yellow); font-family:"Noto Serif KR", serif;}
+  header .sub{
+    font-size:11.5px; color:var(--on-yellow); opacity:.72; margin-top:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #status{
+    display:flex; align-items:center; gap:5px;
+    font-size:10.5px; color:var(--on-yellow); opacity:.85;
+    flex-shrink:0; text-align:right; font-variant-numeric:tabular-nums;
+  }
+  #status .dot{width:6px; height:6px; border-radius:50%; background:#B7A400; flex-shrink:0;}
+  #status.live .dot{background:#2E9E5B;}
+  @media (max-width:420px){
+    #status span:last-child{display:none;}
+  }
+
+  .chips{
+    display:flex; gap:8px; padding:10px 14px;
+    overflow-x:auto; background:var(--room-bg2);
+    border-bottom:1px solid rgba(0,0,0,.05);
+    flex-shrink:0;
+  }
+  .chips::-webkit-scrollbar{height:0;}
+  .chip{
+    flex:none; padding:6px 13px; border-radius:999px;
+    border:none; background:var(--surface); color:var(--ink);
+    font-size:12px; font-weight:500; cursor:pointer; box-shadow:var(--shadow);
+    font-family:inherit;
+  }
+  .chip:hover{background:var(--surface-2);}
+
+  main{
+    flex:1; overflow-y:auto;
+    padding:16px 12px 20px;
+    display:flex; flex-direction:column; gap:2px;
+    background:
+      radial-gradient(circle at 20% 10%, var(--room-bg2) 0%, transparent 40%),
+      var(--room-bg);
+  }
+
+  .row{display:flex; gap:8px; max-width:100%; margin:6px 0;}
+  .row.user{justify-content:flex-end;}
+  .row.bot{justify-content:flex-start; align-items:flex-end;}
+  .row.bot .bot-avatar{
+    width:30px; height:30px; border-radius:9px; flex-shrink:0;
+    background:var(--on-yellow); color:var(--yellow);
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+
+  .bubble{
+    max-width:78%;
+    padding:10px 13px;
+    border-radius:4px 14px 14px 14px;
+    font-size:14px;
+    line-height:1.55;
+    box-shadow:var(--shadow);
+  }
+  .row.user .bubble{
+    background:var(--yellow);
+    color:var(--on-yellow);
+    border-radius:14px 4px 14px 14px;
+  }
+  .row.bot .bubble{
+    background:var(--surface);
+    border:1px solid var(--border);
+    padding:0;
+    overflow:hidden;
+  }
+  .bot-note{padding:11px 14px; color:var(--ink-soft); font-size:13.5px; max-width:300px;}
+
+  .term-card{padding:13px 15px;}
+  .term-card + .term-card{border-top:1px solid var(--border);}
+  .term-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px;}
+  .term-name{font-family:"Noto Serif KR", serif; font-weight:700; font-size:16px; color:var(--ink);}
+  .term-cat{
+    flex:none; font-size:10.5px; color:var(--chip-ink); background:var(--chip-bg);
+    padding:2px 8px; border-radius:999px; letter-spacing:.02em;
+  }
+  .term-def{font-size:13.5px; color:var(--ink); margin:0 0 4px; white-space:pre-line;}
+  .term-detail{font-size:12px; color:var(--ink-faint); margin:0; white-space:pre-line;}
+
+  /* ── 피드백 폼 카드 ── */
+  .feedback-card{
+    background:var(--surface);
+    padding:14px 16px;
+    width:100%;
+    max-width:300px;
+  }
+  .feedback-card h3{font-size:14px; font-weight:700; margin:0 0 8px; color:var(--ink);}
+  .feedback-card label{display:block; font-size:10.5px; font-weight:700; color:var(--ink-soft); margin:9px 0 4px;}
+  .feedback-card input, .feedback-card textarea{
+    width:100%; border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; font-family:inherit; font-size:13px;
+    resize:vertical; background:var(--input-bg); color:var(--ink);
+  }
+  .feedback-card input:focus, .feedback-card textarea:focus{outline:2px solid var(--yellow-dark); outline-offset:1px;}
+  .feedback-card textarea{min-height:60px;}
+  .feedback-actions{display:flex; gap:8px; margin-top:11px;}
+  .btn-request{
+    background:var(--yellow); color:var(--on-yellow); border:none;
+    border-radius:18px; padding:8px 16px; font-size:12px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .btn-request:hover{background:var(--yellow-dark);}
+  .btn-cancel{
+    background:var(--surface-2); color:var(--ink-soft); border:none;
+    border-radius:18px; padding:8px 14px; font-size:12px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .feedback-status{font-size:11.5px; margin-top:7px; color:var(--ink-faint);}
+  .feedback-status.err{color:var(--danger); font-weight:700;}
+  .fb-done{display:flex; flex-direction:column; gap:4px;}
+  .fb-done-title{font-size:14px; font-weight:700; color:var(--success);}
+  .fb-done-sub{font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+
+  form#chatform{
+    position:sticky; bottom:0;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    display:flex; justify-content:center; flex-shrink:0; z-index:5;
+  }
+  .input-wrap{max-width:100%; width:100%; display:flex; align-items:center; gap:8px; position:relative;}
+  .plus-btn{
+    width:34px; height:34px; border-radius:50%;
+    background:var(--surface-2); color:var(--ink-faint); border:none;
+    font-size:20px; font-weight:700; flex-shrink:0; cursor:pointer;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .plus-btn.open{background:var(--ink); color:var(--surface); transform:rotate(45deg);}
+  .plus-menu{
+    position:absolute; left:0; bottom:calc(100% + 10px);
+    background:var(--surface); border-radius:12px; box-shadow:var(--menu-shadow);
+    border:1px solid var(--border); padding:6px; min-width:190px;
+    display:none; flex-direction:column; z-index:10;
+  }
+  .plus-menu.show{display:flex;}
+  .plus-menu button{
+    display:flex; align-items:center; gap:10px; background:none; border:none;
+    text-align:left; padding:10px; border-radius:8px; font-family:inherit;
+    font-size:13.5px; font-weight:500; color:var(--ink); cursor:pointer;
+  }
+  .plus-menu button:hover{background:var(--surface-2);}
+  .plus-menu .ic{
+    width:26px; height:26px; border-radius:7px; background:var(--yellow);
+    display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;
+  }
+  input[type="text"]{
+    flex:1; border:1px solid var(--border); background:var(--input-bg);
+    border-radius:20px; padding:10px 16px; outline:none;
+    font-family:inherit; font-size:14px; color:var(--ink);
+  }
+  input[type="text"]:focus{outline:2px solid var(--yellow-dark); outline-offset:1px;}
+  button.send{
+    width:38px; height:38px; border-radius:50%; background:var(--yellow);
+    color:var(--on-yellow); border:none; font-size:16px; cursor:pointer;
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  }
+  button.send:hover{background:var(--yellow-dark);}
+  button.send:focus-visible, .chip:focus-visible, .plus-btn:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px;
+  }
+
+  @media (prefers-reduced-motion:no-preference){
+    .row{animation:rise .16s ease-out;}
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<div id="app">
+<header>
+  <div class="avatar">📖</div>
+  <div class="titles">
+    <h1>오리온 업무 용어사전</h1>
+    <div class="sub">사내 용어 사전 · 궁금한 걸 바로 물어보세요</div>
+  </div>
+  <div id="status"><span class="dot"></span><span id="status-text">연결 확인 중...</span></div>
+</header>
+
+<div class="chips" id="chips"></div>
+
+<main id="thread"></main>
+
+<form id="chatform">
+  <div class="input-wrap">
+    <button type="button" class="plus-btn" id="plusBtn">+</button>
+    <div class="plus-menu" id="plusMenu">
+      <button type="button" id="requestUpdateBtn"><span class="ic">📝</span>용어 업데이트 요청</button>
+    </div>
+    <input id="askInput" type="text" placeholder="예: POG가 뭐야?" autocomplete="off">
+    <button type="submit" class="send">➤</button>
+  </div>
+</form>
+</div>
+
+<script>
+  /* ========================================================
+     설정
+     ======================================================== */
+  const SHEET_ID = "1kA_AZso25Smauk00di0Ehg6-0bRwYcGE5o9FqtM0wlI";
+  const SHEET_GID = "0";
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv&gid=" + SHEET_GID;
+  const FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbwT1W9AtfrTHKs1en65yyuA60IP_nLa9yydNE_d8PY0BMFk_7AK0ZJiW0eupLlpMMAr/exec";
+  const REFRESH_INTERVAL_MS = 30000;
+
+  let TERMS = [];
+
+  const thread = document.getElementById("thread");
+  const chips = document.getElementById("chips");
+  const form = document.getElementById("chatform");
+  const input = document.getElementById("askInput");
+  const statusEl = document.getElementById("status");
+  const statusText = document.getElementById("status-text");
+  const plusBtn = document.getElementById("plusBtn");
+  const plusMenu = document.getElementById("plusMenu");
+  const requestUpdateBtn = document.getElementById("requestUpdateBtn");
+
+  function setStatus(text, live){
+    statusText.textContent = text;
+    statusEl.classList.toggle("live", !!live);
+  }
+
+  function normalizeRow(row){
+    return {
+      term: (row["용어"] || "").trim(),
+      definition: (row["설명"] || "").trim(),
+      detail: (row["추가설명"] || "").toString().trim(),
+      category: (row["카테고리"] || "기타").trim()
+    };
+  }
+
+  function parseCsv(text){
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    return parsed.data.map(normalizeRow).filter(t => t.term);
+  }
+
+  let chipsRendered = false;
+  async function refreshTerms(initial){
+    try {
+      const res = await fetch(CSV_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const next = parseCsv(text);
+      if (!next.length) throw new Error("빈 데이터");
+      TERMS = next;
+      setStatus("실시간 연동 · 용어 " + TERMS.length + "개", true);
+      if (!chipsRendered){
+        renderChips();
+        chipsRendered = true;
+      }
+    } catch (err) {
+      if (initial) {
+        setStatus("연결 실패 · 새로고침 해주세요", false);
+      } else {
+        console.warn("용어 갱신 실패, 기존 데이터 유지", err);
+      }
+    }
+  }
+
+  function addRow(role, node, opts){
+    opts = opts || {};
+    const row = document.createElement("div");
+    row.className = "row " + role;
+    if (role === "bot" && !opts.noAvatar){
+      const av = document.createElement("div");
+      av.className = "bot-avatar";
+      av.textContent = "📖";
+      row.appendChild(av);
+    }
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    if (typeof node === "string") {
+      bubble.textContent = node;
+    } else {
+      bubble.appendChild(node);
+    }
+    row.appendChild(bubble);
+    thread.appendChild(row);
+    thread.scrollTop = thread.scrollHeight;
+    return row;
+  }
+
+  function renderTermCards(matches){
+    const wrap = document.createElement("div");
+    matches.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "term-card";
+      card.innerHTML =
+        '<div class="term-head"><span class="term-name"></span><span class="term-cat"></span></div>' +
+        '<p class="term-def"></p><p class="term-detail"></p>';
+      card.querySelector(".term-name").textContent = t.term;
+      card.querySelector(".term-cat").textContent = t.category;
+      card.querySelector(".term-def").textContent = t.definition;
+      card.querySelector(".term-detail").textContent = t.detail || "";
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+
+  // ---------- 검색 로직 (띄어쓰기 차이 무시 + 유사도 매칭) ----------
+  function normalizeForMatch(s){
+    return (s || "").toLowerCase().replace(/[\s 　﻿]+/g, "");
+  }
+
+  function levenshtein(a, b){
+    const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++){
+      for (let j = 1; j <= b.length; j++){
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+    return dp[a.length][b.length];
+  }
+
+  function similarity(a, b){
+    if (!a.length || !b.length) return 0;
+    return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+  }
+
+  function score(query, t){
+    const q = normalizeForMatch(query);
+    const name = normalizeForMatch(t.term);
+    if (!q || !name) return 0;
+    if (q === name) return 100;
+    if (name.includes(q) && q.length >= 2) return 88;
+    if (q.includes(name)) return 82;
+    if (normalizeForMatch(t.definition).includes(q) || normalizeForMatch(t.detail).includes(q) || normalizeForMatch(t.category).includes(q)) return 60;
+    return similarity(q, name) * 55;
+  }
+
+  function search(query){
+    return TERMS
+      .map(t => ({ t, s: score(query, t) }))
+      .filter(x => x.s >= 40)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 5)
+      .map(x => x.t);
+  }
+
+  function handleQuery(query){
+    addRow("user", query, { noAvatar: true });
+    const matches = search(query);
+    if (matches.length){
+      addRow("bot", renderTermCards(matches));
+    } else {
+      const note = document.createElement("div");
+      note.className = "bot-note";
+      note.textContent = "\"" + query + "\"와(과) 일치하는 용어를 찾지 못했어요. 표현을 바꿔서 검색해보시거나, + 버튼으로 용어 업데이트를 요청해주세요.";
+      addRow("bot", note);
+    }
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const q = input.value;
+    if (!q.trim()) return;
+    handleQuery(q);
+    input.value = "";
+    input.focus();
+  });
+
+  function renderChips(){
+    chips.innerHTML = "";
+    const cats = [...new Set(TERMS.map(t => t.category))];
+    cats.forEach(cat => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.textContent = cat;
+      chip.addEventListener("click", () => handleQuery(cat));
+      chips.appendChild(chip);
+    });
+  }
+
+  // ---------- + 버튼 드롭다운 ----------
+  plusBtn.addEventListener("click", () => {
+    plusBtn.classList.toggle("open");
+    plusMenu.classList.toggle("show");
+  });
+  document.addEventListener("click", (e) => {
+    if (!plusBtn.contains(e.target) && !plusMenu.contains(e.target)){
+      plusBtn.classList.remove("open");
+      plusMenu.classList.remove("show");
+    }
+  });
+  requestUpdateBtn.addEventListener("click", () => {
+    plusBtn.classList.remove("open");
+    plusMenu.classList.remove("show");
+    openFeedbackForm();
+  });
+
+  // ---------- 피드백(용어 업데이트 요청) ----------
+  function openFeedbackForm(){
+    const card = document.createElement("div");
+    card.className = "feedback-card";
+    card.innerHTML = `
+      <h3>📝 용어 업데이트 요청</h3>
+      <label>용어명</label>
+      <input type="text" class="fb-term" placeholder="예: POG" />
+      <label>요청 내용</label>
+      <textarea class="fb-message" placeholder="추가하거나 수정하고 싶은 내용을 적어주세요"></textarea>
+      <label>이름 / 부서 (선택)</label>
+      <input type="text" class="fb-requester" placeholder="예: 홍길동 / 마케팅팀" />
+      <div class="feedback-actions">
+        <button type="button" class="btn-request fb-submit">요청 보내기</button>
+        <button type="button" class="btn-cancel fb-cancel">취소</button>
+      </div>
+      <div class="feedback-status"></div>
+    `;
+    const row = addRow("bot", card);
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.querySelector(".fb-cancel").addEventListener("click", () => row.remove());
+    card.querySelector(".fb-submit").addEventListener("click", () => submitFeedback(card));
+  }
+
+  async function submitFeedback(card){
+    const term = card.querySelector(".fb-term").value.trim();
+    const message = card.querySelector(".fb-message").value.trim();
+    const requester = card.querySelector(".fb-requester").value.trim() || "익명";
+    const statusEl2 = card.querySelector(".feedback-status");
+
+    if (!term){
+      statusEl2.textContent = "용어명을 입력해주세요.";
+      statusEl2.className = "feedback-status err";
+      return;
+    }
+    statusEl2.textContent = "전송 중...";
+    statusEl2.className = "feedback-status";
+
+    try {
+      const res = await fetch(FEEDBACK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ term, message, requester })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        throw new Error(result.error || ("서버 응답 오류 (" + res.status + ")"));
+      }
+      card.innerHTML = `
+        <div class="fb-done">
+          <span class="fb-done-title">✅ 요청 완료</span>
+          <span class="fb-done-sub">"${term.replace(/</g, "&lt;")}" 요청이 접수됐어요. 검토 후 반영해드릴게요!</span>
+        </div>`;
+    } catch (err) {
+      statusEl2.textContent = "전송 실패: " + (err && err.message ? err.message : "잠시 후 다시 시도해주세요.");
+      statusEl2.className = "feedback-status err";
+    }
+  }
+
+  // ---------- 시작 ----------
+  const greetNote = document.createElement("div");
+  greetNote.className = "bot-note";
+  greetNote.textContent = "안녕하세요! 영업·생산·구매·재경·품질 등 사내 업무 용어를 검색해 드려요. 용어를 입력하거나 위 카테고리를 눌러보세요. 없는 용어는 + 버튼으로 등록 요청도 가능해요.";
+  addRow("bot", greetNote);
+
+  refreshTerms(true);
+  setInterval(() => refreshTerms(false), REFRESH_INTERVAL_MS);
+</script>
+</body>
+</html>
