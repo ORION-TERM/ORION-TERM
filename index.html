@@ -184,6 +184,17 @@
   .card .body{padding:12px 14px 14px;}
   .card .term{font-size:16.5px; font-weight:700; margin:6px 0 5px; color:var(--ink); font-family:"Noto Serif KR", serif;}
   .card .def{font-size:13.5px; line-height:1.55; color:var(--ink); margin:0 0 9px; white-space:pre-line;}
+  .term-img{
+    display:block; width:100%; max-height:220px; object-fit:contain;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    margin:0 0 10px; cursor:zoom-in;
+  }
+  #lightbox{
+    position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.82);
+    display:none; align-items:center; justify-content:center; padding:16px; cursor:zoom-out;
+  }
+  #lightbox.show{display:flex;}
+  #lightbox img{max-width:94vw; max-height:90vh; object-fit:contain; border-radius:8px; background:#fff;}
   .extra-box{
     background:var(--extra-bg); border-left:3px solid var(--yellow-dark); border-radius:4px;
     padding:8px 10px; margin:0 0 10px; font-size:12.5px; line-height:1.6;
@@ -476,7 +487,8 @@
       definition: (row["설명"] || "").trim(),
       detail: (row["추가설명"] || "").toString().trim(),
       category: (row["카테고리"] || "기타").trim(),
-      views: Number(row["조회수"]) || 0
+      views: Number(row["조회수"]) || 0,
+      image: (row["이미지"] || "").toString().trim()
     };
   }
 
@@ -562,6 +574,20 @@
   /* ========================================================
      용어 카드
      ======================================================== */
+  const lightbox = document.createElement("div");
+  lightbox.id = "lightbox";
+  const lightboxImg = document.createElement("img");
+  lightbox.appendChild(lightboxImg);
+  document.body.appendChild(lightbox);
+  function openLightbox(src, alt){
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    lightbox.classList.add("show");
+  }
+  function closeLightbox(){ lightbox.classList.remove("show"); }
+  lightbox.addEventListener("click", closeLightbox);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLightbox(); });
+
   function addCard(t){
     const card = document.createElement("div");
     card.className = "card";
@@ -583,6 +609,18 @@
     defEl.className = "def";
     defEl.textContent = t.definition;
     body.appendChild(defEl);
+
+    if (t.image){
+      const img = document.createElement("img");
+      img.className = "term-img";
+      img.alt = t.term;
+      img.loading = "lazy";
+      img.src = "images/" + encodeURIComponent(t.image);
+      img.addEventListener("load", () => { thread.scrollTop = thread.scrollHeight; });
+      img.addEventListener("error", () => img.remove());
+      img.addEventListener("click", () => openLightbox(img.src, t.term));
+      body.appendChild(img);
+    }
 
     if (t.detail){
       const box = document.createElement("div");
