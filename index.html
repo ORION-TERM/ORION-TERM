@@ -940,14 +940,18 @@
     if (!nameN) return 0;
     if (qn === nameN) return 100;
     if (nameN.includes(qn) && qn.length >= 2) return 88;
-    if (qn.includes(nameN) && nameN.length >= 2) return 82;
+    if (qn.includes(nameN) && nameN.length >= 2){
+      // 영문 약어(예: MD)가 다른 영문/숫자에 붙어 있으면(예: MDM) 확정 일치로 보지 않음
+      if (!isLatinTerm(t.term) || latinWordIn(q, t.term)) return 82;
+    }
 
     if (/[가-힣]/.test(q)){
       for (const variant of phoneticVariants(t)){
         const vn = normalizeForMatch(variant);
         if (!vn) continue;
         if (qn === vn) return 97;
-        if ((vn.includes(qn) && qn.length >= 2) || (qn.includes(vn) && vn.length >= 2)) return 80;
+        if (qn.includes(vn) && vn.length >= 2) return 81;
+        if (vn.includes(qn) && qn.length >= 2) return 75;
       }
     }
 
@@ -972,18 +976,24 @@
       return;
     }
     const qn = normalizeForMatch(query);
-    const exact = results.filter(r => r.s === 100);
-    if (exact.length){
-      // 이름이 같거나(괄호 앞 이름이 같은: PC(생산)/PC(브랜드)) 용어가 여러 개면 전부 선택지로 보여줌
-      const sameBase = results.filter(r => r.s !== 100 && baseName(r.t.term) === qn);
-      const group = exact.concat(sameBase);
-      if (group.length === 1) addCard(group[0].t);
-      else addSelection(query, group.map(r => r.t));
-    } else if (results.length === 1){
-      addCard(results[0].t);
+    // 확정 일치: 이름이 정확히 같음(100) / 한글 발음 전체 일치(97, 81) / 질문 안에 용어가 통째로 있음(82)
+    //            / 괄호 앞 이름이 같음(예: PC(생산)·PC(브랜드))
+    const confident = results.filter(r =>
+      r.s === 100 || r.s === 97 || r.s === 82 || r.s === 81 || baseName(r.t.term) === qn);
+    if (confident.length === 1){
+      addCard(confident[0].t);
+    } else if (confident.length > 1){
+      addSelection(query, confident.map(r => r.t));
     } else {
+      // 일부만 일치하는 경우(예: dd → DDoS)는 바로 답하지 않고 후보를 보여주며 확인
       addSelection(query, results.slice(0, 5).map(r => r.t));
     }
+  }
+
+  function isLatinTerm(term){ return /^[A-Za-z0-9\/&().\-_,:]+$/.test(term); }
+  function latinWordIn(rawQuery, term){
+    const esc = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp("(?<![a-z0-9])" + esc + "(?![a-z0-9])").test(rawQuery.toLowerCase());
   }
 
   function baseName(term){
