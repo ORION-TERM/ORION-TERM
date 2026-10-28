@@ -274,10 +274,17 @@
     justify-content:center;
   }
   .select-item-request:hover{background:#FBFAF5;}
-  .no-match-wrap{display:flex; flex-direction:column; gap:10px; align-items:flex-start; padding:11px 14px; max-width:300px;}
+  .no-match-wrap{
+    display:flex; flex-direction:column; gap:10px; align-items:flex-start; padding:11px 14px; max-width:300px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px 14px 14px 14px; box-shadow:var(--shadow);
+  }
 
   /* ── 피드백 폼 카드 ── */
-  .feedback-card{background:var(--surface); padding:14px 16px; width:100%; max-width:300px;}
+  .feedback-card{
+    background:var(--surface); padding:14px 16px; width:100%; max-width:300px;
+    border:1px solid var(--border); border-radius:4px 14px 14px 14px; box-shadow:var(--shadow);
+  }
   .feedback-card h3{font-size:14px; font-weight:700; margin:0 0 8px; color:var(--ink);}
   .feedback-card label{display:block; font-size:10.5px; font-weight:700; color:var(--ink-soft); margin:9px 0 4px;}
   .feedback-card input, .feedback-card textarea{
