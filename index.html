@@ -285,6 +285,23 @@
     justify-content:center;
   }
   .select-item-request:hover{background:#FBFAF5;}
+  .bubble-bot.pre{white-space:pre-line;}
+  .compare-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:4px 14px 14px 14px;
+    box-shadow:var(--shadow); width:100%; max-width:320px; overflow:hidden;
+  }
+  .compare-head{padding:10px 14px; font-size:13.5px; font-weight:700; color:var(--ink); background:var(--select-viewed-bg); border-bottom:1px solid var(--border);}
+  .compare-row{padding:11px 14px;}
+  .compare-row + .compare-row{border-top:1px solid var(--border);}
+  .compare-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:3px;}
+  .compare-term{font-family:"Noto Serif KR", serif; font-weight:700; font-size:14.5px; color:var(--ink); overflow-wrap:anywhere;}
+  .compare-cat{font-size:10px; font-weight:700; color:var(--ink-soft); background:var(--yellow); padding:1px 7px; border-radius:8px; white-space:nowrap;}
+  .compare-def{
+    margin:0 0 4px; font-size:12.5px; line-height:1.5; color:var(--ink); white-space:pre-line;
+    display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .compare-more{border:none; background:none; padding:0; font-family:inherit; font-size:11.5px; color:var(--link-ink); text-decoration:underline; cursor:pointer;}
+  .compare-more:hover{color:var(--ink-soft);}
   .no-match-wrap{
     display:flex; flex-direction:column; gap:10px; align-items:flex-start; padding:11px 14px; max-width:300px;
     background:var(--surface); border:1px solid var(--border);
@@ -393,6 +410,8 @@
       <button type="button" data-menu-action="top5"><span class="ic">🔥</span>가장 많이 검색한 TOP5</button>
       <button type="button" data-menu-action="recent"><span class="ic">🆕</span>최신 추가 용어</button>
       <button type="button" data-menu-action="categories"><span class="ic">🗂</span>카테고리 보기</button>
+      <button type="button" data-menu-action="today"><span class="ic">📅</span>오늘의 용어</button>
+      <button type="button" data-menu-action="compare"><span class="ic">⚖</span>헷갈리는 용어 비교</button>
     </div>
     <input id="askInput" type="text" placeholder="예시: RRP가 뭐야?" autocomplete="off">
     <button type="submit" class="send">➤</button>
@@ -741,9 +760,9 @@
   }
 
   function suggestRelated(t){
-    const names = RELATED[t.term];
+    const names = lookupByName(RELATED, t.term);
     if (!names || !names.length) return;
-    const relTerms = names.map(n => TERMS.find(x => x.term === n)).filter(Boolean);
+    const relTerms = names.map(n => findTermByName(n)).filter(Boolean);
     if (!relTerms.length) return;
 
     const wrap = document.createElement("div");
@@ -908,7 +927,8 @@
     const list = [];
     const spelled = spellKorean(extractLatinToken(t.term));
     if (spelled) list.push(spelled);
-    if (PHONETIC_OVERRIDES[t.term]) list.push(...PHONETIC_OVERRIDES[t.term]);
+    const extra = lookupByName(PHONETIC_OVERRIDES, t.term);
+    if (extra) list.push(...extra);
     return list;
   }
 
@@ -1017,6 +1037,8 @@
     grid.appendChild(mk("🔥", "가장 많이 검색한 TOP5", "top5"));
     grid.appendChild(mk("🆕", "최신 추가 용어", "recent"));
     grid.appendChild(mk("🗂", "카테고리 보기", "categories"));
+    grid.appendChild(mk("📅", "오늘의 용어", "today"));
+    grid.appendChild(mk("⚖", "헷갈리는 용어 비교", "compare"));
     thread.appendChild(grid);
   }
 
@@ -1043,6 +1065,14 @@
       showCategoryList();
       return;
     }
+    if (action === "today"){
+      showTodayTerm();
+      return;
+    }
+    if (action === "compare"){
+      showCompareList();
+      return;
+    }
 
     const isTop5 = action === "top5";
     const list = isTop5 ? computeTop5() : computeRecent();
@@ -1060,6 +1090,337 @@
       badge: isTop5 ? (idx + 1) + "위" : catLabel(t),
       onClick: () => addCard(t)
     })));
+  }
+
+  /* ========================================================
+     이름이 조금 바뀐 용어도 찾기 (시트에서 "(= 총매출)" → "(총매출)" 처럼 표기를 고쳐도 연결 유지)
+     ======================================================== */
+  function canonName(s){ return normalizeForMatch((s || "").replace(/=/g, "")); }
+
+  function lookupByName(map, name){
+    if (map[name]) return map[name];
+    const c = canonName(name);
+    const keys = Object.keys(map);
+    for (const k of keys) if (canonName(k) === c) return map[k];
+    const b = baseName(name);
+    const same = keys.filter(k => baseName(k) === b);
+    return same.length === 1 ? map[same[0]] : null;
+  }
+
+  function findTermByName(name){
+    let t = TERMS.find(x => x.term === name);
+    if (t) return t;
+    const c = canonName(name);
+    t = TERMS.find(x => canonName(x.term) === c);
+    if (t) return t;
+    const b = baseName(name);
+    const cands = TERMS.filter(x => baseName(x.term) === b);
+    return cands.length === 1 ? cands[0] : null;
+  }
+
+  /* ========================================================
+     📅 오늘의 용어 — 한국 날짜 기준으로 모두에게 같은 용어 1개 (용어가 추가돼도 거의 바뀌지 않음)
+     ======================================================== */
+  function kstDateStr(){
+    try { return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }); }
+    catch (e) { return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); }
+  }
+  function hash32(str){
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function pickTodayTerm(day){
+    let best = null, bestH = Infinity;
+    TERMS.forEach(t => {
+      if (!t.definition) return;
+      const h = hash32(day + "|" + t.term);
+      if (h < bestH){ bestH = h; best = t; }
+    });
+    return best;
+  }
+  function showTodayTerm(){
+    const day = kstDateStr();
+    const t = pickTodayTerm(day);
+    if (!t){
+      botRow(plainBubble("오늘의 용어를 고르지 못했어요. 잠시 후 다시 눌러주세요 🙏"));
+      return;
+    }
+    const parts = day.split("-");
+    botRow(plainBubble("📅 오늘의 용어 (" + Number(parts[1]) + "월 " + Number(parts[2]) + "일)\n오늘은 \"" + t.term + "\" 용어를 알아볼까요?\n내일은 또 다른 용어를 소개해드릴게요.", "pre"));
+    addCard(t);
+  }
+
+  /* ========================================================
+     ⚖ 헷갈리는 용어 비교 — 묶음을 고르면 용어들의 설명을 한 번에 나란히 보여줌
+     ======================================================== */
+  const COMPARE_GROUPS = [
+      {
+          "title": "매출 종류 (총매출·순매출·실매출)",
+          "terms": [
+              "출고가 (총매출)",
+              "차감 전 출고매출",
+              "출고매출 (순매출)",
+              "순매출",
+              "실매출 (POS매출)"
+          ]
+      },
+      {
+          "title": "재고일수 (안전·창고·매대)",
+          "terms": [
+              "재고일수",
+              "안전 재고일수",
+              "창고 재고일수",
+              "매대 재고일수"
+          ]
+      },
+      {
+          "title": "할인 종류 (계약DC·할인1·할인2)",
+          "terms": [
+              "계약DC1 (Discount)",
+              "계약DC2 (Discount)",
+              "할인1",
+              "할인2"
+          ]
+      },
+      {
+          "title": "투자·자산 단계",
+          "terms": [
+              "투자 약정",
+              "투자 실적",
+              "투자 정산",
+              "건설중인자산",
+              "완성자산"
+          ]
+      },
+      {
+          "title": "영업 직무 (PS·S-DTS·SM·MD)",
+          "terms": [
+              "PS",
+              "S-DTS",
+              "SM",
+              "MD"
+          ]
+      },
+      {
+          "title": "영업 채널·매장 구분",
+          "terms": [
+              "MT",
+              "TT",
+              "CS",
+              "준하이퍼",
+              "준하이퍼 / 초대형 매장",
+              "대형 이하 매장",
+              "대리점",
+              "특약점"
+          ]
+      },
+      {
+          "title": "생산 직무·업무 (QA·QM·PM)",
+          "terms": [
+              "QA",
+              "QM",
+              "PM"
+          ]
+      },
+      {
+          "title": "식품안전 인증·기준",
+          "terms": [
+              "HACCP",
+              "FSSC 22000",
+              "GMP",
+              "QMS"
+          ]
+      },
+      {
+          "title": "품질 시스템·평가",
+          "terms": [
+              "TCP",
+              "LIMS",
+              "FLI",
+              "CVP",
+              "GSA"
+          ]
+      },
+      {
+          "title": "입고·송장 처리 (G/R·I/R)",
+          "terms": [
+              "G/R (Good Receipt) (입고처리)",
+              "I/R (Invoice Receipt) (송장처리)",
+              "Invoice (송장/인보이스)"
+          ]
+      },
+      {
+          "title": "구매 단위 (가격·오더·정산)",
+          "terms": [
+              "Price unit (가격단위)",
+              "Order unit (오더단위)",
+              "Invoice unit (정산단위)"
+          ]
+      },
+      {
+          "title": "수입 결제방식 (L/C·D/P·T/T)",
+          "terms": [
+              "L/C (Letter of Credit) (신용장)",
+              "D/P (Documents against Payment) (지급인도조건)",
+              "T/T (Telegraphic transfer) (전신환송금방식)"
+          ]
+      },
+      {
+          "title": "출발·도착 일정 (ETD·ETA)",
+          "terms": [
+              "ETD (Estimated Time of Departure) (출발 예정 시각)",
+              "ETA (Estimated Time of Arrival) (도착예정일)"
+          ]
+      },
+      {
+          "title": "BOM·라우팅",
+          "terms": [
+              "BOM (자재 명세서)",
+              "대체 BOM",
+              "Routing (라우팅)"
+          ]
+      },
+      {
+          "title": "관리회계 용어",
+          "terms": [
+              "계정상세",
+              "원가요소",
+              "코스트센터"
+          ]
+      },
+      {
+          "title": "회계 전표·일자 용어",
+          "terms": [
+              "전기일자 (Posting date)",
+              "증빙일자 (Document date)",
+              "반제 (Clearing)",
+              "역분개 (Reversal)"
+          ]
+      },
+      {
+          "title": "진열·판촉물",
+          "terms": [
+              "POG",
+              "엔드/엔캡",
+              "랙",
+              "댕글러",
+              "헤더",
+              "ISP",
+              "RRP"
+          ]
+      },
+      {
+          "title": "매장 지표 (취급률·분포율)",
+          "terms": [
+              "취급률",
+              "분포율"
+          ]
+      },
+      {
+          "title": "가격 (소비자가·예상판매가)",
+          "terms": [
+              "소비자가",
+              "예상판매가"
+          ]
+      },
+      {
+          "title": "거래처 정보 (BP·거래처·공급업체)",
+          "terms": [
+              "BP(Business Partner)",
+              "거래처",
+              "공급업체",
+              "파트너 기능"
+          ]
+      },
+      {
+          "title": "생산 능력·가동",
+          "terms": [
+              "생산능력(CAPA)",
+              "가동율"
+          ]
+      },
+      {
+          "title": "원가 (제조원가·매출원가)",
+          "terms": [
+              "제조원가",
+              "매출원가",
+              "노경비"
+          ]
+      },
+      {
+          "title": "브랜드 (PB·NB)",
+          "terms": [
+              "PB",
+              "NB"
+          ]
+      },
+      {
+          "title": "재고 신선도 (PA·부동재고)",
+          "terms": [
+              "PA",
+              "부동재고"
+          ]
+      }
+  ];
+
+  function availableCompareGroups(){
+    return COMPARE_GROUPS.map(g => {
+      const items = [];
+      g.terms.forEach(n => {
+        const t = findTermByName(n);
+        if (t && items.indexOf(t) < 0) items.push(t);
+      });
+      return { title: g.title, items };
+    }).filter(g => g.items.length >= 2);
+  }
+
+  function showCompareList(){
+    const groups = availableCompareGroups();
+    if (!groups.length){
+      botRow(plainBubble("비교할 용어 묶음이 아직 없어요."));
+      return;
+    }
+    choiceList("⚖ 어떤 용어가 헷갈리세요?",
+      groups.map(g => ({ label: g.title, badge: g.items.length + "개", onClick: () => showCompare(g) })));
+  }
+
+  function showCompare(g){
+    const wrap = document.createElement("div");
+    wrap.className = "compare-card";
+    const head = document.createElement("div");
+    head.className = "compare-head";
+    head.textContent = "⚖ " + g.title + " 비교";
+    wrap.appendChild(head);
+
+    g.items.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "compare-row";
+      const top = document.createElement("div");
+      top.className = "compare-top";
+      const name = document.createElement("span");
+      name.className = "compare-term";
+      name.textContent = t.term;
+      const cat = document.createElement("span");
+      cat.className = "compare-cat";
+      cat.textContent = catLabel(t);
+      top.appendChild(name);
+      top.appendChild(cat);
+      const def = document.createElement("p");
+      def.className = "compare-def";
+      def.textContent = t.definition;
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "compare-more";
+      more.textContent = "자세히 보기 ▸";
+      more.addEventListener("click", () => addCard(t));
+      row.appendChild(top);
+      row.appendChild(def);
+      row.appendChild(more);
+      wrap.appendChild(row);
+    });
+    botRow(wrap);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
   const PAGE_SIZE = 15;
