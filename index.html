@@ -195,7 +195,15 @@
     display:none; align-items:center; justify-content:center; padding:16px; cursor:zoom-out;
   }
   #lightbox.show{display:flex;}
-  #lightbox img{max-width:94vw; max-height:90vh; object-fit:contain; border-radius:8px; background:#fff;}
+  #lightbox img{display:block; max-width:94vw; max-height:90vh; max-height:90dvh; object-fit:contain; border-radius:8px; background:#fff;}
+  .lb-inner{position:relative; display:inline-block; max-width:94vw;}
+  .lb-close{
+    position:absolute; top:8px; right:8px; width:40px; height:40px; padding:0;
+    border:none; border-radius:50%; background:rgba(0,0,0,.6); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lb-close:hover{background:rgba(0,0,0,.8);}
+  .lb-close:focus-visible{outline:2px solid #fff; outline-offset:2px;}
   .extra-box{
     background:var(--extra-bg); border-left:3px solid var(--yellow-dark); border-radius:4px;
     padding:8px 10px; margin:0 0 10px; font-size:12.5px; line-height:1.6;
@@ -619,8 +627,18 @@
      ======================================================== */
   const lightbox = document.createElement("div");
   lightbox.id = "lightbox";
+  const lightboxInner = document.createElement("div");
+  lightboxInner.className = "lb-inner";
   const lightboxImg = document.createElement("img");
-  lightbox.appendChild(lightboxImg);
+  const lightboxClose = document.createElement("button");
+  lightboxClose.type = "button";
+  lightboxClose.className = "lb-close";
+  lightboxClose.setAttribute("aria-label", "닫기");
+  lightboxClose.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">' +
+    '<path d="M4 4 L16 16 M16 4 L4 16" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg>';
+  lightboxInner.appendChild(lightboxImg);
+  lightboxInner.appendChild(lightboxClose);
+  lightbox.appendChild(lightboxInner);
   document.body.appendChild(lightbox);
   function openLightbox(src, alt){
     lightboxImg.src = src;
