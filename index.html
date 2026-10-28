@@ -180,6 +180,7 @@
   .card .cat-tag{
     display:inline-block; font-size:10.5px; font-weight:700; color:var(--on-yellow);
     background:var(--yellow); padding:3px 9px; border-radius:0 0 8px 0;
+    white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; vertical-align:top;
   }
   .card .body{padding:12px 14px 14px;}
   .card .term{font-size:16.5px; font-weight:700; margin:6px 0 5px; color:var(--ink); font-family:"Noto Serif KR", serif;}
@@ -214,11 +215,15 @@
   .btn-request:hover{background:var(--yellow-dark);}
 
   /* ── 선택지 목록 (여러 후보 / TOP5 / 최신 / 카테고리) ── */
-  .select-bubble{display:flex; flex-direction:column; gap:8px; max-width:300px;}
+  .select-bubble{
+    display:flex; flex-direction:column; gap:8px; max-width:320px; min-width:210px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px 14px 14px 14px; padding:10px 12px; box-shadow:var(--shadow);
+  }
   .select-prompt{margin:0; font-size:14px;}
   .select-list{display:flex; flex-direction:column; gap:6px;}
   .select-item{
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 8px;
     background:var(--select-bg); border:1px solid var(--select-border); border-radius:9px;
     padding:9px 12px; font-family:inherit; font-size:13px; font-weight:500; color:var(--ink);
     cursor:pointer; text-align:left;
@@ -227,9 +232,35 @@
   .select-item.viewed{border-color:var(--yellow-dark); background:var(--select-viewed-bg);}
   .select-item .select-cat{
     font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--yellow);
-    padding:2px 7px; border-radius:8px; flex-shrink:1; max-width:58%;
-    text-align:center; line-height:1.35; overflow-wrap:anywhere;
+    padding:2px 7px; border-radius:8px; flex:0 0 auto; white-space:nowrap; margin-left:auto;
   }
+  .select-item > span:first-child{flex:1 1 auto; min-width:0; overflow-wrap:anywhere;}
+  .select-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  .select-toggle{
+    flex:none; border:1px solid var(--select-border); background:var(--surface);
+    border-radius:999px; font-family:inherit; font-size:11px; font-weight:700;
+    padding:3px 9px; color:var(--ink-soft); cursor:pointer; white-space:nowrap;
+  }
+  .select-toggle:hover{background:var(--select-hover);}
+  .select-list.collapsed{display:none;}
+  .select-more{
+    background:#fff; border:1px dashed var(--select-request-border); color:var(--select-request-ink);
+    border-radius:9px; padding:9px 12px; font-family:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; text-align:center;
+  }
+  .select-more:hover{background:#FBFAF5;}
+  .jump-latest{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(76px + env(safe-area-inset-bottom)); z-index:8; display:none;
+    min-height:40px; padding:0 18px; border:none; border-radius:999px;
+    background:var(--yellow); color:var(--on-yellow);
+    font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+  }
+  .jump-latest.show{display:block;}
+  .jump-latest:hover{background:var(--yellow-dark);}
+  body.menu-open .jump-latest{display:none;}
+  @media (min-width:760px){ .jump-latest{bottom:104px;} }
   .select-item-request{
     background:#fff; border:1px dashed var(--select-request-border); color:var(--select-request-ink);
     justify-content:center;
@@ -982,64 +1013,77 @@
       return;
     }
 
-    const wrap = document.createElement("div");
-    wrap.className = "select-bubble";
-    const p = document.createElement("p");
-    p.className = "select-prompt";
-    p.textContent = label;
-    wrap.appendChild(p);
-
-    const listEl = document.createElement("div");
-    listEl.className = "select-list";
-    list.forEach((t, idx) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "select-item";
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = t.term;
-      const badge = document.createElement("span");
-      badge.className = "select-cat";
-      badge.textContent = isTop5 ? (idx + 1) + "위" : catLabel(t);
-      btn.appendChild(nameSpan);
-      btn.appendChild(badge);
-      btn.addEventListener("click", () => {
-        btn.classList.add("viewed");
-        addCard(t);
-      });
-      listEl.appendChild(btn);
-    });
-    wrap.appendChild(listEl);
-    botRow(wrap);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    choiceList(label, list.map((t, idx) => ({
+      label: t.term,
+      badge: isTop5 ? (idx + 1) + "위" : catLabel(t),
+      onClick: () => addCard(t)
+    })));
   }
+
+  const PAGE_SIZE = 15;
 
   function choiceList(promptText, items){
     const wrap = document.createElement("div");
     wrap.className = "select-bubble";
+    const head = document.createElement("div");
+    head.className = "select-head";
     const p = document.createElement("p");
     p.className = "select-prompt";
     p.textContent = promptText;
-    wrap.appendChild(p);
+    head.appendChild(p);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "select-toggle";
+    toggle.textContent = "접기 ▲";
+    head.appendChild(toggle);
+    wrap.appendChild(head);
 
     const list = document.createElement("div");
     list.className = "select-list";
-    items.forEach(it => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "select-item";
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = it.label;
-      const badge = document.createElement("span");
-      badge.className = "select-cat";
-      badge.textContent = it.badge;
-      btn.appendChild(nameSpan);
-      btn.appendChild(badge);
-      btn.addEventListener("click", () => {
-        btn.classList.add("viewed");
-        it.onClick();
+
+    function setCollapsed(collapsed){
+      list.classList.toggle("collapsed", collapsed);
+      toggle.textContent = collapsed ? "펼치기 ▼" : "접기 ▲";
+    }
+    toggle.addEventListener("click", () => setCollapsed(!list.classList.contains("collapsed")));
+
+    let shown = 0;
+    let moreBtn = null;
+    // 15개를 조금 넘는 정도(18개까지)면 "1개 남음" 같은 어색한 더 보기 없이 전부 보여줌
+    const firstSize = items.length <= PAGE_SIZE + 3 ? items.length : PAGE_SIZE;
+    function renderMore(){
+      if (moreBtn){ moreBtn.remove(); moreBtn = null; }
+      const size = shown === 0 ? firstSize : PAGE_SIZE;
+      items.slice(shown, shown + size).forEach(it => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "select-item";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = it.label;
+        const badge = document.createElement("span");
+        badge.className = "select-cat";
+        badge.textContent = it.badge;
+        btn.appendChild(nameSpan);
+        btn.appendChild(badge);
+        btn.addEventListener("click", () => {
+          btn.classList.add("viewed");
+          setCollapsed(true);
+          it.onClick();
+        });
+        list.appendChild(btn);
       });
-      list.appendChild(btn);
-    });
+      shown = Math.min(shown + size, items.length);
+      if (shown < items.length){
+        moreBtn = document.createElement("button");
+        moreBtn.type = "button";
+        moreBtn.className = "select-more";
+        moreBtn.textContent = "더 보기 (" + (items.length - shown) + "개 남음)";
+        moreBtn.addEventListener("click", renderMore);
+        list.appendChild(moreBtn);
+      }
+    }
+    renderMore();
+
     wrap.appendChild(list);
     botRow(wrap);
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -1075,6 +1119,34 @@
     choiceList("📂 \"" + title + "\" 용어 (" + list.length + "개)",
       list.map(t => ({ label: t.term, badge: catLabel(t), onClick: () => addCard(t) })));
   }
+
+  /* ========================================================
+     "최근 대화로" 플로팅 버튼 (위로 스크롤해 있을 때만 표시)
+     ======================================================== */
+  const jumpBtn = document.createElement("button");
+  jumpBtn.type = "button";
+  jumpBtn.className = "jump-latest";
+  jumpBtn.textContent = "↓ 최근 대화로";
+  document.body.appendChild(jumpBtn);
+
+  function mainScrolls(){ return thread.scrollHeight > thread.clientHeight + 2; }
+  function distFromBottom(){
+    if (mainScrolls()) return thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+    const de = document.documentElement;
+    return de.scrollHeight - window.scrollY - window.innerHeight;
+  }
+  function updateJumpBtn(){ jumpBtn.classList.toggle("show", distFromBottom() > 200); }
+  jumpBtn.addEventListener("click", () => {
+    if (mainScrolls()) thread.scrollTo({ top: thread.scrollHeight, behavior: "smooth" });
+    else window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+  });
+  thread.addEventListener("scroll", updateJumpBtn, { passive: true });
+  window.addEventListener("scroll", updateJumpBtn, { passive: true });
+  window.addEventListener("resize", updateJumpBtn);
+  new MutationObserver(() => setTimeout(updateJumpBtn, 400)).observe(thread, { childList: true, subtree: true });
+  // + 메뉴가 열려 있을 땐 버튼이 가리지 않게 숨김
+  new MutationObserver(() => document.body.classList.toggle("menu-open", plusMenu.classList.contains("show")))
+    .observe(plusMenu, { attributes: true, attributeFilter: ["class"] });
 
   /* ========================================================
      + 버튼 드롭다운
