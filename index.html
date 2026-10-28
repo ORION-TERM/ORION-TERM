@@ -227,7 +227,8 @@
   .select-item.viewed{border-color:var(--yellow-dark); background:var(--select-viewed-bg);}
   .select-item .select-cat{
     font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--yellow);
-    padding:2px 7px; border-radius:8px; flex-shrink:0;
+    padding:2px 7px; border-radius:8px; flex-shrink:1; max-width:58%;
+    text-align:center; line-height:1.35; overflow-wrap:anywhere;
   }
   .select-item-request{
     background:#fff; border:1px dashed var(--select-request-border); color:var(--select-request-ink);
@@ -484,15 +485,23 @@
     statusEl.classList.toggle("live", !!live);
   }
 
+  // 시트 헤더명: 1단계 = "카테고리1"(없으면 기존 "카테고리"), 2단계 = "카테고리2"
   function normalizeRow(row){
+    const c1 = (row["카테고리1"] || row["카테고리"] || "").toString().trim();
+    const c2 = (row["카테고리2"] || "").toString().trim();
     return {
       term: (row["용어"] || "").trim(),
       definition: (row["설명"] || "").trim(),
       detail: (row["추가설명"] || "").toString().trim(),
-      category: (row["카테고리"] || "기타").trim(),
+      category: c1 || "기타",
+      category2: c2,
       views: Number(row["조회수"]) || 0,
       image: (row["이미지"] || "").toString().trim()
     };
+  }
+
+  function catLabel(t){
+    return t.category2 ? t.category + " > " + t.category2 : t.category;
   }
 
   function parseCsv(text){
@@ -597,7 +606,7 @@
 
     const tag = document.createElement("span");
     tag.className = "cat-tag";
-    tag.textContent = t.category;
+    tag.textContent = catLabel(t);
     card.appendChild(tag);
 
     const body = document.createElement("div");
@@ -648,16 +657,16 @@
     card.appendChild(body);
     botRow(card);
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-    logTermView(t.term);
+    logTermView(t);
     suggestRelated(t);
   }
 
-  function logTermView(term){
-    if (!term) return;
+  function logTermView(t){
+    if (!t || !t.term) return;
     fetch(FEEDBACK_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "logView", term })
+      body: JSON.stringify({ action: "logView", term: t.term, category: t.category, category2: t.category2 || "" })
     }).catch(() => { /* 조회수 기록 실패는 조용히 무시 (검색 자체엔 영향 없음) */ });
   }
 
@@ -684,7 +693,7 @@
       nameSpan.textContent = rt.term;
       const catSpan = document.createElement("span");
       catSpan.className = "select-cat";
-      catSpan.textContent = rt.category;
+      catSpan.textContent = catLabel(rt);
       btn.appendChild(nameSpan);
       btn.appendChild(catSpan);
       btn.addEventListener("click", () => {
@@ -719,7 +728,7 @@
       nameSpan.textContent = t.term;
       const catSpan = document.createElement("span");
       catSpan.className = "select-cat";
-      catSpan.textContent = t.category;
+      catSpan.textContent = catLabel(t);
       btn.appendChild(nameSpan);
       btn.appendChild(catSpan);
       btn.addEventListener("click", () => {
@@ -868,11 +877,25 @@
     const results = search(query);
     if (results.length === 0){
       addNoMatch(query);
-    } else if (results.length === 1 || results[0].s === 100){
+      return;
+    }
+    const qn = normalizeForMatch(query);
+    const exact = results.filter(r => r.s === 100);
+    if (exact.length){
+      // 이름이 같거나(괄호 앞 이름이 같은: PC(생산)/PC(브랜드)) 용어가 여러 개면 전부 선택지로 보여줌
+      const sameBase = results.filter(r => r.s !== 100 && baseName(r.t.term) === qn);
+      const group = exact.concat(sameBase);
+      if (group.length === 1) addCard(group[0].t);
+      else addSelection(query, group.map(r => r.t));
+    } else if (results.length === 1){
       addCard(results[0].t);
     } else {
-      addSelection(query, results.slice(0, 3).map(r => r.t));
+      addSelection(query, results.slice(0, 5).map(r => r.t));
     }
+  }
+
+  function baseName(term){
+    return normalizeForMatch(term.replace(/\s*[(（].*$/, ""));
   }
 
   form.addEventListener("submit", e => {
@@ -976,7 +999,7 @@
       nameSpan.textContent = t.term;
       const badge = document.createElement("span");
       badge.className = "select-cat";
-      badge.textContent = isTop5 ? (idx + 1) + "위" : t.category;
+      badge.textContent = isTop5 ? (idx + 1) + "위" : catLabel(t);
       btn.appendChild(nameSpan);
       btn.appendChild(badge);
       btn.addEventListener("click", () => {
@@ -990,34 +1013,30 @@
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
-  function showCategoryList(){
-    const cats = [...new Set(TERMS.map(t => t.category))];
-    const counts = {};
-    TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
-
+  function choiceList(promptText, items){
     const wrap = document.createElement("div");
     wrap.className = "select-bubble";
     const p = document.createElement("p");
     p.className = "select-prompt";
-    p.textContent = "🗂 어떤 카테고리가 궁금하신가요?";
+    p.textContent = promptText;
     wrap.appendChild(p);
 
     const list = document.createElement("div");
     list.className = "select-list";
-    cats.forEach(cat => {
+    items.forEach(it => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "select-item";
       const nameSpan = document.createElement("span");
-      nameSpan.textContent = cat;
+      nameSpan.textContent = it.label;
       const badge = document.createElement("span");
       badge.className = "select-cat";
-      badge.textContent = counts[cat] + "개";
+      badge.textContent = it.badge;
       btn.appendChild(nameSpan);
       btn.appendChild(badge);
       btn.addEventListener("click", () => {
         btn.classList.add("viewed");
-        showCategoryTerms(cat);
+        it.onClick();
       });
       list.appendChild(btn);
     });
@@ -1026,37 +1045,40 @@
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
-  function showCategoryTerms(cat){
-    const list = TERMS.filter(t => t.category === cat);
-    const wrap = document.createElement("div");
-    wrap.className = "select-bubble";
-    const p = document.createElement("p");
-    p.className = "select-prompt";
-    p.textContent = "📂 \"" + cat + "\" 카테고리 용어 (" + list.length + "개)";
-    wrap.appendChild(p);
+  // 1단계 카테고리 목록
+  function showCategoryList(){
+    const cats = [...new Set(TERMS.map(t => t.category))];
+    const counts = {};
+    TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
+    choiceList("🗂 어떤 카테고리가 궁금하신가요?",
+      cats.map(cat => ({ label: cat, badge: counts[cat] + "개", onClick: () => showSubCategoryList(cat) })));
+  }
 
-    const listEl = document.createElement("div");
-    listEl.className = "select-list";
-    list.forEach(t => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "select-item";
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = t.term;
-      const badge = document.createElement("span");
-      badge.className = "select-cat";
-      badge.textContent = cat;
-      btn.appendChild(nameSpan);
-      btn.appendChild(badge);
-      btn.addEventListener("click", () => {
-        btn.classList.add("viewed");
-        addCard(t);
-      });
-      listEl.appendChild(btn);
+  // 2단계 카테고리 목록 (2단계가 없는 1단계는 바로 용어 목록으로)
+  function showSubCategoryList(cat){
+    const group = TERMS.filter(t => t.category === cat);
+    const subs = [...new Set(group.map(t => t.category2).filter(Boolean))];
+    if (!subs.length){
+      showCategoryTerms(cat, null);
+      return;
+    }
+    const items = [{ label: "전체 보기", badge: group.length + "개", onClick: () => showCategoryTerms(cat, null) }];
+    subs.forEach(sub => {
+      const n = group.filter(t => t.category2 === sub).length;
+      items.push({ label: sub, badge: n + "개", onClick: () => showCategoryTerms(cat, sub) });
     });
-    wrap.appendChild(listEl);
-    botRow(wrap);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    const noSub = group.filter(t => !t.category2).length;
+    if (noSub) items.push({ label: "(세부 분류 없음)", badge: noSub + "개", onClick: () => showCategoryTerms(cat, "") });
+    choiceList("📂 \"" + cat + "\"의 세부 카테고리를 골라주세요", items);
+  }
+
+  // sub === null: 1단계 전체, "": 2단계 없는 용어만, 그 외: 해당 2단계
+  function showCategoryTerms(cat, sub){
+    const list = TERMS.filter(t => t.category === cat &&
+      (sub === null || sub === undefined ? true : (t.category2 || "") === sub));
+    const title = cat + (sub ? " > " + sub : "");
+    choiceList("📂 \"" + title + "\" 용어 (" + list.length + "개)",
+      list.map(t => ({ label: t.term, badge: catLabel(t), onClick: () => addCard(t) })));
   }
 
   /* ========================================================
