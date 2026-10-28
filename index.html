@@ -215,6 +215,17 @@
     text-decoration:underline; cursor:pointer; font-family:inherit;
   }
   .request-link:hover{color:var(--ink-soft);}
+  .rate-row{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:2px 0 10px; font-size:11.5px; color:var(--link-ink);}
+  .rate-btn{
+    width:44px; height:34px; border:1px solid var(--select-border); border-radius:999px; background:var(--surface-2);
+    font-size:15px; line-height:1; cursor:pointer; padding:0;
+  }
+  .rate-btn:hover{background:var(--select-hover);}
+  .rate-thanks{color:var(--ink-soft);}
+  .rate-fix{
+    border:none; background:none; padding:0; font-family:inherit; font-size:11.5px; color:var(--ink-soft);
+    text-decoration:underline; cursor:pointer;
+  }
   .btn-request{
     background:var(--yellow); color:var(--on-yellow); border:none; border-radius:18px;
     padding:9px 16px; font-family:inherit; font-weight:700; font-size:12.5px;
@@ -703,6 +714,8 @@
       body.appendChild(box);
     }
 
+    body.appendChild(buildRatingRow(t));
+
     const reqBtn = document.createElement("button");
     reqBtn.type = "button";
     reqBtn.className = "request-link";
@@ -714,6 +727,7 @@
     botRow(card);
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     logTermView(t);
+    bump("termViews");
     suggestRelated(t);
   }
 
@@ -930,8 +944,10 @@
 
   function handleQuery(query){
     addUserMsg(query);
+    bump("searches");
     const results = search(query);
     if (results.length === 0){
+      bump("noMatch");
       addNoMatch(query);
       return;
     }
@@ -1017,6 +1033,7 @@
   }
 
   function handleQuickAction(action){
+    bump("quick");
     if (!TERMS.length){
       botRow(plainBubble("아직 용어를 불러오는 중이에요. 잠시 후 다시 눌러주세요 🙏"));
       return;
@@ -1304,6 +1321,7 @@
       done.appendChild(t1);
       done.appendChild(t2);
       card.appendChild(done);
+      bump("requests");
     } catch (err) {
       statusEl2.textContent = "전송 실패: " + (err && err.message ? err.message : "잠시 후 다시 시도해주세요.");
       statusEl2.className = "feedback-status err";
@@ -1311,8 +1329,182 @@
   }
 
   /* ========================================================
+     사용 로그 (익명) + 👍/👎
+     - 개인 식별 정보는 수집하지 않음(랜덤 ID, 기기/브라우저 종류, 이용 횟수)
+     - localhost 에서는 전송하지 않음, ?admin=1 로 한 번 접속한 브라우저는 "관리자"로 표시(대시보드 제외)
+     ======================================================== */
+  const LOG_PARAMS = new URLSearchParams(location.search);
+  const LOG_LOCAL = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+  const LOG_ENABLED = !LOG_LOCAL || LOG_PARAMS.has("logtest");
+  const SESSION_GAP_MS = 30 * 60 * 1000;
+
+  function lsGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k){ try { localStorage.removeItem(k); } catch (e) {} }
+  function ssGet(k){ try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function ssSet(k, v){ try { sessionStorage.setItem(k, v); } catch (e) {} }
+  function newId(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  }
+
+  if (LOG_PARAMS.get("admin") === "1") lsSet("ot_admin", "1");
+  if (LOG_PARAMS.get("admin") === "0") lsDel("ot_admin");
+  const IS_ADMIN = lsGet("ot_admin") === "1";
+
+  function detectEnv(){
+    const ua = navigator.userAgent || "";
+    const touch = (navigator.maxTouchPoints || 0) > 1;
+    const isIPadOS = /Macintosh/.test(ua) && touch;
+    let device = "PC";
+    if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || isIPadOS || (/Android/i.test(ua) && !/Mobile/i.test(ua))) device = "태블릿";
+    else if (/iPhone|iPod|Android|Mobile|Windows Phone/i.test(ua)) device = "모바일";
+    let os = "기타";
+    if (/iPhone|iPad|iPod/i.test(ua) || isIPadOS) os = "iOS";
+    else if (/Android/i.test(ua)) os = "Android";
+    else if (/Windows/i.test(ua)) os = "Windows";
+    else if (/Mac OS X|Macintosh/i.test(ua)) os = "macOS";
+    else if (/CrOS/i.test(ua)) os = "ChromeOS";
+    else if (/Linux/i.test(ua)) os = "Linux";
+    let browser = "기타";
+    if (/KAKAOTALK/i.test(ua)) browser = "카카오톡 인앱";
+    else if (/NAVER\(/.test(ua)) browser = "네이버 인앱";
+    else if (/Teams\//i.test(ua)) browser = "Teams";
+    else if (/Edg(e|A|iOS)?\//.test(ua)) browser = "Edge";
+    else if (/Whale\//i.test(ua)) browser = "Whale";
+    else if (/SamsungBrowser/i.test(ua)) browser = "Samsung Internet";
+    else if (/Firefox|FxiOS/i.test(ua)) browser = "Firefox";
+    else if (/Chrome|CriOS/i.test(ua)) browser = "Chrome";
+    else if (/Safari/i.test(ua)) browser = "Safari";
+    return { device, os, browser, screenW: window.innerWidth };
+  }
+
+  const ENV = detectEnv();
+  const usage = { sid: "", vid: "", start: 0, last: 0, visitType: "", lastSent: "", c: {} };
+  function zeroCounts(){ return { searches: 0, noMatch: 0, termViews: 0, quick: 0, requests: 0, ratings: 0 }; }
+
+  function sendLog(payload){
+    if (!LOG_ENABLED) return;
+    const body = JSON.stringify(payload);
+    try {
+      if (navigator.sendBeacon && navigator.sendBeacon(FEEDBACK_URL, new Blob([body], { type: "text/plain;charset=UTF-8" }))) return;
+    } catch (e) {}
+    try {
+      fetch(FEEDBACK_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body, keepalive: true }).catch(() => {});
+    } catch (e) {}
+  }
+
+  function basePayload(action){
+    return Object.assign({ action, sessionId: usage.sid, visitorId: usage.vid, admin: IS_ADMIN ? "Y" : "" }, ENV, { visitType: usage.visitType });
+  }
+  function saveSession(){
+    ssSet("ot_sess", JSON.stringify({ sid: usage.sid, start: usage.start, last: usage.last, visitType: usage.visitType, c: usage.c }));
+  }
+  function touch(){ usage.last = Date.now(); }
+  function bump(key){
+    usage.c[key] = (usage.c[key] || 0) + 1;
+    touch();
+    saveSession();
+  }
+
+  function startSession(){
+    const now = Date.now();
+    usage.vid = lsGet("ot_vid") || newId();
+    lsSet("ot_vid", usage.vid);
+    const seenBefore = !!lsGet("ot_first");
+    usage.visitType = seenBefore ? "재방문" : "신규";
+    if (!seenBefore) lsSet("ot_first", String(now));
+    usage.sid = newId();
+    usage.start = now;
+    usage.last = now;
+    usage.c = zeroCounts();
+    usage.lastSent = "";
+    saveSession();
+    sendLog(basePayload("visit"));
+  }
+
+  function initUsage(){
+    let prev = null;
+    try { const raw = ssGet("ot_sess"); prev = raw ? JSON.parse(raw) : null; } catch (e) {}
+    if (prev && prev.sid && Date.now() - prev.last < SESSION_GAP_MS){
+      usage.vid = lsGet("ot_vid") || newId();
+      lsSet("ot_vid", usage.vid);
+      usage.sid = prev.sid;
+      usage.start = prev.start;
+      usage.last = Date.now();
+      usage.visitType = prev.visitType || "재방문";
+      usage.c = Object.assign(zeroCounts(), prev.c || {});
+    } else {
+      startSession();
+    }
+    ["click", "keydown", "touchstart", "scroll"].forEach(ev =>
+      window.addEventListener(ev, touch, { passive: true, capture: true }));
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushSession();
+      else if (Date.now() - usage.last > SESSION_GAP_MS) startSession();
+      else touch();
+    });
+    window.addEventListener("pagehide", flushSession);
+  }
+
+  function flushSession(){
+    const dur = Math.max(0, Math.round((usage.last - usage.start) / 1000));
+    const p = Object.assign(basePayload("session"), {
+      duration: dur, searches: usage.c.searches, noMatch: usage.c.noMatch, termViews: usage.c.termViews,
+      quick: usage.c.quick, requests: usage.c.requests, ratings: usage.c.ratings
+    });
+    const key = JSON.stringify([p.sessionId, p.duration, p.searches, p.noMatch, p.termViews, p.quick, p.requests, p.ratings]);
+    if (key === usage.lastSent) return;
+    usage.lastSent = key;
+    saveSession();
+    sendLog(p);
+  }
+
+  function buildRatingRow(t){
+    const row = document.createElement("div");
+    row.className = "rate-row";
+    const q = document.createElement("span");
+    q.textContent = "도움이 되었나요?";
+    row.appendChild(q);
+    const mk = (emoji, label, value) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "rate-btn";
+      b.textContent = emoji;
+      b.setAttribute("aria-label", label);
+      b.addEventListener("click", () => submitRating(t, value, row));
+      return b;
+    };
+    row.appendChild(mk("👍", "도움이 됐어요", "좋음"));
+    row.appendChild(mk("👎", "아쉬워요", "아쉬움"));
+    return row;
+  }
+
+  function submitRating(t, value, row){
+    sendLog(Object.assign(basePayload("rating"), { term: t.term, category: catLabel(t), rating: value }));
+    bump("ratings");
+    row.innerHTML = "";
+    const msg = document.createElement("span");
+    msg.className = "rate-thanks";
+    if (value === "좋음"){
+      msg.textContent = "감사합니다! 🙌";
+      row.appendChild(msg);
+    } else {
+      msg.textContent = "아쉬움을 남겨주셔서 감사해요.";
+      row.appendChild(msg);
+      const fix = document.createElement("button");
+      fix.type = "button";
+      fix.className = "rate-fix";
+      fix.textContent = "수정 요청하기";
+      fix.addEventListener("click", () => openFeedbackForm(t.term, "수정"));
+      row.appendChild(fix);
+    }
+  }
+
+  /* ========================================================
      시작
      ======================================================== */
+  initUsage();
   addWelcomeMessage();
   addQuickActions();
   refreshTerms(true);
