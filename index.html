@@ -1064,7 +1064,8 @@
 
   const PAGE_SIZE = 15;
 
-  function choiceList(promptText, items){
+  function choiceList(promptText, items, opts){
+    const pinned = !!(opts && opts.pinned);
     const wrap = document.createElement("div");
     wrap.className = "select-bubble";
     const head = document.createElement("div");
@@ -1077,7 +1078,7 @@
     toggle.type = "button";
     toggle.className = "select-toggle";
     toggle.textContent = "접기 ▲";
-    head.appendChild(toggle);
+    if (!pinned) head.appendChild(toggle);
     wrap.appendChild(head);
 
     const list = document.createElement("div");
@@ -1109,7 +1110,7 @@
         btn.appendChild(badge);
         btn.addEventListener("click", () => {
           btn.classList.add("viewed");
-          setCollapsed(true);
+          if (!pinned) setCollapsed(true);
           it.onClick();
         });
         list.appendChild(btn);
@@ -1137,7 +1138,7 @@
     const counts = {};
     TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
     choiceList("🗂 어떤 카테고리가 궁금하신가요?",
-      cats.map(cat => ({ label: cat, badge: counts[cat] + "개", onClick: () => showSubCategoryList(cat) })));
+      cats.map(cat => ({ label: cat, badge: counts[cat] + "개", onClick: () => showSubCategoryList(cat) })), { pinned: true });
   }
 
   // 2단계 카테고리 목록 (항상 1단계 → 2단계 → 용어 순서로 보여줌)
