@@ -1054,18 +1054,13 @@
       cats.map(cat => ({ label: cat, badge: counts[cat] + "개", onClick: () => showSubCategoryList(cat) })));
   }
 
-  // 2단계 카테고리 목록 (2단계가 없는 1단계는 바로 용어 목록으로)
+  // 2단계 카테고리 목록 (항상 1단계 → 2단계 → 용어 순서로 보여줌)
   function showSubCategoryList(cat){
     const group = TERMS.filter(t => t.category === cat);
     const subs = [...new Set(group.map(t => t.category2).filter(Boolean))];
-    if (!subs.length){
-      showCategoryTerms(cat, null);
-      return;
-    }
-    const items = [{ label: "전체 보기", badge: group.length + "개", onClick: () => showCategoryTerms(cat, null) }];
-    subs.forEach(sub => {
+    const items = subs.map(sub => {
       const n = group.filter(t => t.category2 === sub).length;
-      items.push({ label: sub, badge: n + "개", onClick: () => showCategoryTerms(cat, sub) });
+      return { label: sub, badge: n + "개", onClick: () => showCategoryTerms(cat, sub) };
     });
     const noSub = group.filter(t => !t.category2).length;
     if (noSub) items.push({ label: "(세부 분류 없음)", badge: noSub + "개", onClick: () => showCategoryTerms(cat, "") });
