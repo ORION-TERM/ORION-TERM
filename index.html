@@ -430,6 +430,12 @@
   const REFRESH_INTERVAL_MS = 30000;
 
   let TERMS = [];
+  let termsReady = false;          // 용어 데이터를 한 번이라도 불러왔는지(저장본 포함)
+  const pendingQueries = [];       // 불러오는 동안 들어온 질문 (불러오면 자동으로 답변)
+  let refreshing = false;
+  let refreshFailures = 0;
+  let lastRefreshOk = 0;
+  let slowNoticeShown = false;
 
   const thread = document.getElementById("thread");
   const form = document.getElementById("chatform");
@@ -582,24 +588,57 @@
 
   function parseCsv(text){
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    // 오류 안내 페이지 등 시트 형식이 아닌 응답이면 갱신하지 않음
+    if (!parsed.meta || !parsed.meta.fields || parsed.meta.fields.indexOf("용어") < 0) throw new Error("형식 오류");
     return parsed.data.map(normalizeRow).filter(t => t.term);
   }
 
-  async function refreshTerms(initial){
+  function loadTermsCache(){
+    try {
+      const raw = localStorage.getItem("ot_terms_v1");
+      if (!raw) return;
+      const o = JSON.parse(raw);
+      if (o && Array.isArray(o.terms) && o.terms.length){
+        TERMS = o.terms;
+        termsReady = true;
+        setStatus("저장된 용어 " + TERMS.length + "개 · 최신 내용 확인 중", false);
+      }
+    } catch (e) {}
+  }
+  function saveTermsCache(){
+    try { localStorage.setItem("ot_terms_v1", JSON.stringify({ t: Date.now(), terms: TERMS })); } catch (e) {}
+  }
+
+  async function refreshTerms(){
+    if (refreshing) return;
+    refreshing = true;
     try {
       const res = await fetch(CSV_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      const text = await res.text();
-      const next = parseCsv(text);
+      const next = parseCsv(await res.text());
       if (!next.length) throw new Error("빈 데이터");
       TERMS = next;
+      termsReady = true;
+      refreshFailures = 0;
+      lastRefreshOk = Date.now();
+      saveTermsCache();
       setStatus("실시간 연동 · 용어 " + TERMS.length + "개", true);
+      pendingQueries.splice(0).forEach(q => answerQuery(q));
     } catch (err) {
-      if (initial) {
-        setStatus("연결 실패 · 새로고침 해주세요", false);
+      refreshFailures++;
+      if (!termsReady){
+        setStatus("연결 지연 · 자동으로 다시 시도 중", false);
+        if (refreshFailures >= 4 && pendingQueries.length && !slowNoticeShown){
+          slowNoticeShown = true;
+          botRow(plainBubble("연결이 계속 늦어지고 있어요. 잠시 후 다시 시도해 주세요 🙏"));
+        }
+        setTimeout(refreshTerms, Math.min(1500 * Math.pow(2, refreshFailures - 1), 12000));
       } else {
         console.warn("용어 갱신 실패, 기존 데이터 유지", err);
+        if (!lastRefreshOk) setStatus("저장된 용어 " + TERMS.length + "개 사용 중 · 최신 내용 재확인 중", false);
       }
+    } finally {
+      refreshing = false;
     }
   }
 
@@ -969,6 +1008,15 @@
   function handleQuery(query){
     addUserMsg(query);
     bump("searches");
+    if (!termsReady){
+      botRow(plainBubble("용어 데이터를 불러오는 중이에요 ⏳ 불러오면 바로 알려드릴게요!"));
+      pendingQueries.push(query);
+      return;
+    }
+    answerQuery(query);
+  }
+
+  function answerQuery(query){
     const results = search(query);
     if (results.length === 0){
       bump("noMatch");
@@ -1879,8 +1927,12 @@
   initUsage();
   addWelcomeMessage();
   addQuickActions();
-  refreshTerms(true);
-  setInterval(() => refreshTerms(false), REFRESH_INTERVAL_MS);
+  loadTermsCache();
+  refreshTerms();
+  setInterval(() => { if (!document.hidden) refreshTerms(); }, REFRESH_INTERVAL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - lastRefreshOk > REFRESH_INTERVAL_MS) refreshTerms();
+  });
 </script>
 </body>
 </html>
