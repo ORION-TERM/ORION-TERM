@@ -422,7 +422,7 @@
   .plus-menu{
     position:absolute; left:0; bottom:calc(100% + 10px);
     background:var(--surface); border-radius:12px; box-shadow:var(--menu-shadow);
-    border:1px solid var(--border); padding:6px; min-width:232px;
+    border:1px solid var(--border); padding:6px; min-width:210px;
     display:none; flex-direction:column; z-index:10;
   }
   .plus-menu.show{display:flex;}
@@ -509,7 +509,7 @@
     <button type="button" class="plus-btn" id="plusBtn">+</button>
     <div class="plus-menu" id="plusMenu">
       <button type="button" id="requestUpdateBtn"><span class="ic">📝</span>용어 업데이트 요청</button>
-      <button type="button" id="pinShowBtn" style="display:none"><span class="ic">📌</span>바로 가기 용어 다시 고정하기</button>
+      <button type="button" id="pinShowBtn" style="display:none"><span class="ic">📌</span>바로가기 다시 고정하기</button>
     </div>
     <input id="askInput" type="text" placeholder="예시: RRP가 뭐야?" autocomplete="off">
     <button type="submit" class="send">➤</button>
@@ -1773,7 +1773,7 @@
   document.getElementById("pinFold").addEventListener("click", () => pinSet("folded"));
   document.getElementById("pinHide").addEventListener("click", () => {
     pinSet("hidden");
-    botRow(plainBubble("바로가기를 숨겼어요. 다시 보려면 + 메뉴의 \"바로 가기 용어 다시 고정하기\"를 눌러주세요 📌"));
+    botRow(plainBubble("바로가기를 숨겼어요. 다시 보려면 + 메뉴의 \"바로가기 다시 고정하기\"를 눌러주세요 📌"));
   });
   pinShowBtn.addEventListener("click", () => {
     plusMenu.classList.remove("show");
