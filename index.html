@@ -478,9 +478,9 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.2a1 1 0 0 0-1.05.1L12 8.4H5.5A2.5 2.5 0 0 0 3 10.9v2.2a2.5 2.5 0 0 0 2.5 2.5h1.1l1.2 4.3a1 1 0 0 0 .96.74h1.9a.9.9 0 0 0 .87-1.14L10.4 15.6H12l7.45 5.1a1 1 0 0 0 1.55-.83V4.1a1 1 0 0 0-.5-.9z"/></svg>
       </span>
       <div class="pin-quick">
-        <button type="button" data-pin-action="categories">🗂 카테고리</button>
+        <button type="button" data-pin-action="categories">📚 카테고리</button>
         <button type="button" data-pin-action="today">📅 오늘의 용어</button>
-        <button type="button" data-pin-action="compare">⚖ 용어 비교</button>
+        <button type="button" data-pin-action="compare">🤔 용어 비교</button>
       </div>
       <div class="pin-head">바로가기</div>
       <button type="button" class="pin-toggle" id="pinToggle" aria-expanded="false" aria-label="바로가기 펼치기">
@@ -488,11 +488,11 @@
       </button>
     </div>
     <div class="pin-body">
-      <button type="button" class="pin-act" data-pin-action="categories"><span class="em">🗂</span>카테고리</button>
+      <button type="button" class="pin-act" data-pin-action="categories"><span class="em">📚</span>카테고리</button>
       <button type="button" class="pin-act" data-pin-action="today"><span class="em">📅</span>오늘의 용어</button>
-      <button type="button" class="pin-act" data-pin-action="compare"><span class="em">⚖</span>용어 비교</button>
+      <button type="button" class="pin-act" data-pin-action="compare"><span class="em">🤔</span>용어 비교</button>
       <button type="button" class="pin-act" data-pin-action="top5"><span class="em">🔥</span>가장 많이 검색한 TOP5</button>
-      <button type="button" class="pin-act" data-pin-action="recent"><span class="em">🆕</span>최신 추가 용어</button>
+      <button type="button" class="pin-act" data-pin-action="recent"><span class="em">🌱</span>최신 추가 용어</button>
       <div class="pin-foot">
         <button type="button" id="pinHide">다시 열지 않음</button>
         <button type="button" id="pinFold">접어두기</button>
@@ -1191,10 +1191,10 @@
     };
 
     grid.appendChild(mk("🔥", "가장 많이 검색한 TOP5", "top5"));
-    grid.appendChild(mk("🆕", "최신 추가 용어", "recent"));
-    grid.appendChild(mk("🗂", "카테고리 보기", "categories"));
+    grid.appendChild(mk("🌱", "최신 추가 용어", "recent"));
+    grid.appendChild(mk("📚", "카테고리 보기", "categories"));
     grid.appendChild(mk("📅", "오늘의 용어", "today"));
-    grid.appendChild(mk("⚖", "헷갈리는 용어 비교", "compare"));
+    grid.appendChild(mk("🤔", "헷갈리는 용어 비교", "compare"));
     thread.appendChild(grid);
   }
 
@@ -1232,7 +1232,7 @@
 
     const isTop5 = action === "top5";
     const list = isTop5 ? computeTop5() : computeRecent();
-    const label = isTop5 ? "🔥 가장 많이 검색한 TOP5 용어" : "🆕 최신 추가된 용어";
+    const label = isTop5 ? "🔥 가장 많이 검색한 TOP5 용어" : "🌱 최신 추가된 용어";
 
     if (!list.length){
       botRow(plainBubble(isTop5
@@ -1308,7 +1308,7 @@
   }
 
   /* ========================================================
-     ⚖ 헷갈리는 용어 비교 — 묶음을 고르면 용어들의 설명을 한 번에 나란히 보여줌
+     🤔 헷갈리는 용어 비교 — 묶음을 고르면 용어들의 설명을 한 번에 나란히 보여줌
      ======================================================== */
   const COMPARE_GROUPS = [
       {
@@ -1537,7 +1537,7 @@
       botRow(plainBubble("비교할 용어 묶음이 아직 없어요."));
       return;
     }
-    choiceList("⚖ 어떤 용어가 헷갈리세요?",
+    choiceList("🤔 어떤 용어가 헷갈리세요?",
       groups.map(g => ({ label: g.title, badge: g.items.length + "개", onClick: () => showCompare(g) })));
   }
 
@@ -1546,7 +1546,7 @@
     wrap.className = "compare-card";
     const head = document.createElement("div");
     head.className = "compare-head";
-    head.textContent = "⚖ " + g.title + " 비교";
+    head.textContent = "🤔 " + g.title + " 비교";
     wrap.appendChild(head);
 
     g.items.forEach(t => {
@@ -1662,13 +1662,13 @@
       }
       const stub = document.createElement("div");
       stub.className = "list-stub";
-      stub.textContent = "🗂 카테고리 목록 · 아래에 다시 열었어요";
+      stub.textContent = "📚 카테고리 목록 · 아래에 다시 열었어요";
       catListRow.replaceWith(stub);
     }
     const cats = [...new Set(TERMS.map(t => t.category))];
     const counts = {};
     TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
-    catListRow = choiceList("🗂 어떤 카테고리가 궁금하신가요?",
+    catListRow = choiceList("📚 어떤 카테고리가 궁금하신가요?",
       cats.map(cat => ({ label: cat, badge: counts[cat] + "개", onClick: () => showSubCategoryList(cat) })), { pinned: true });
   }
 
