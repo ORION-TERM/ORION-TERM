@@ -94,7 +94,7 @@
   .top-fixed{position:sticky; top:0; z-index:6; flex-shrink:0;}
   header .avatar{
     width:38px; height:38px; border-radius:40%;
-    background:var(--on-yellow);
+    background:#fff;
     display:flex; align-items:center; justify-content:center;
     font-size:19px; flex-shrink:0;
   }
@@ -188,7 +188,7 @@
   .bot-row{display:flex; align-items:flex-start; gap:8px; margin:10px 0 2px; max-width:88%;}
   .bot-avatar{
     width:34px; height:34px; border-radius:40%; flex-shrink:0;
-    background:var(--on-yellow); color:var(--yellow);
+    background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.05);
     display:flex; align-items:center; justify-content:center; font-size:16px;
   }
   .bot-col{display:flex; flex-direction:column; gap:4px; min-width:0;}
@@ -222,7 +222,10 @@
   }
 
   /* ── 웰컴 메시지 ── */
-  .welcome-bubble{max-width:340px; white-space:pre-line; word-break:keep-all; overflow-wrap:break-word; font-size:13.5px; line-height:1.65;}
+  .welcome-bubble{max-width:340px; word-break:keep-all; overflow-wrap:break-word; font-size:13.5px; line-height:1.65;}
+  .welcome-bubble p{margin:0 0 .85em; text-wrap:balance;}
+  .welcome-bubble p:last-child{margin-bottom:0;}
+  .welcome-bubble .ph{display:inline-block; max-width:100%;}
   .bot-row:has(.welcome-bubble){max-width:100%;}
 
   /* ── 퀵 액션 버튼 ── */
@@ -1158,20 +1161,33 @@
   /* ========================================================
      웰컴 메시지 + 퀵 액션(TOP5 / 최신 추가 / 카테고리 보기)
      ======================================================== */
+  // 소개글은 "구절" 단위로 묶어서, 화면 폭이 달라도 줄바꿈이 구절 사이에서만 일어나게 함
+  // (안쪽 배열 = 한 문단, BR 표식 = 문장 끝 줄바꿈)
+  const BR = "<br>";
+  const WELCOME_PARAGRAPHS = [
+    ["안녕하세요!", "오리온 사내 용어 해결사,", "🌳오리온 용어 나무🌳입니다!"],
+    ["업무 중 마주친", "낯선 약어나", "헷갈리는 사내 용어,", "이제 저에게", "편하게 물어보세요!"],
+    ["🌳오리온 용어 나무🌳는", "여러분의 관심으로 자라납니다!💡", BR,
+     "임직원 여러분이", "던져주시는 질문과 피드백을", "먹고 성장하고 있어요."],
+    ["아직 모르는 단어가", "있을 수도 있지만,", "여러분이 자주 사용하고", "적극적으로 의견을 남길수록",
+     "더욱 풍성하고 똑똑한 답변을", "드릴 수 있답니다."],
+    ["자, 오늘 어떤 용어가 궁금하신가요?", BR, "지금 바로 입력해 주세요!"]
+  ];
+
   function addWelcomeMessage(){
     const bubble = plainBubble("", "welcome-bubble");
-    bubble.textContent =
-`안녕하세요! 오리온 사내 용어 해결사, 🌳⁠오리온 용어 나무⁠🌳⁠입니다!
-
-업무 중 마주친 낯선 약어나 헷갈리는 사내 용어, 이제 저에게 편하게 물어보세요!
-
-🌳⁠오리온 용어 나무⁠🌳⁠는 여러분의 관심으로 자라납니다!💡
-임직원 여러분이 던져주시는 질문과 피드백을 먹고 성장하고 있어요.
-
-아직 모르는 단어가 있을 수도 있지만, 여러분이 자주 사용하고 적극적으로 의견을 남길수록 더욱 풍성하고 똑똑한 답변을 드릴 수 있답니다.
-
-자, 오늘 어떤 용어가 궁금하신가요?
-지금 바로 입력해 주세요!`;
+    WELCOME_PARAGRAPHS.forEach(parts => {
+      const p = document.createElement("p");
+      parts.forEach((part, i) => {
+        if (part === BR){ p.appendChild(document.createElement("br")); return; }
+        if (i > 0 && parts[i - 1] !== BR) p.appendChild(document.createTextNode(" "));
+        const span = document.createElement("span");
+        span.className = "ph";
+        span.textContent = part;
+        p.appendChild(span);
+      });
+      bubble.appendChild(p);
+    });
     botRow(bubble);
   }
 
