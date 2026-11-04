@@ -93,7 +93,7 @@
   }
   .top-fixed{position:sticky; top:0; z-index:6; flex-shrink:0;}
   header .avatar{
-    width:38px; height:38px; border-radius:11px;
+    width:38px; height:38px; border-radius:40%;
     background:var(--on-yellow);
     display:flex; align-items:center; justify-content:center;
     font-size:19px; flex-shrink:0;
@@ -187,7 +187,7 @@
   /* ── 말풍선 공통 ── */
   .bot-row{display:flex; align-items:flex-start; gap:8px; margin:10px 0 2px; max-width:88%;}
   .bot-avatar{
-    width:34px; height:34px; border-radius:10px; flex-shrink:0;
+    width:34px; height:34px; border-radius:40%; flex-shrink:0;
     background:var(--on-yellow); color:var(--yellow);
     display:flex; align-items:center; justify-content:center; font-size:16px;
   }
@@ -222,7 +222,8 @@
   }
 
   /* ── 웰컴 메시지 ── */
-  .welcome-bubble{max-width:320px; white-space:pre-line; font-size:13.5px; line-height:1.65;}
+  .welcome-bubble{max-width:340px; white-space:pre-line; word-break:keep-all; overflow-wrap:break-word; font-size:13.5px; line-height:1.65;}
+  .bot-row:has(.welcome-bubble){max-width:100%;}
 
   /* ── 퀵 액션 버튼 ── */
   .quick-actions{display:flex; flex-wrap:wrap; gap:8px; max-width:320px; margin:2px 0 14px 42px;}
@@ -1160,11 +1161,11 @@
   function addWelcomeMessage(){
     const bubble = plainBubble("", "welcome-bubble");
     bubble.textContent =
-`안녕하세요! 오리온 사내 용어 해결사, 🌳오리온 용어 나무🌳입니다!
-업무 중 마주친 낯선 약어나 헷갈리는 사내 용어,
-이제 저에게 편하게 물어보세요!
+`안녕하세요! 오리온 사내 용어 해결사, 🌳⁠오리온 용어 나무⁠🌳⁠입니다!
 
-🌳오리온 용어 나무🌳는 여러분의 관심으로 자라납니다!💡
+업무 중 마주친 낯선 약어나 헷갈리는 사내 용어, 이제 저에게 편하게 물어보세요!
+
+🌳⁠오리온 용어 나무⁠🌳⁠는 여러분의 관심으로 자라납니다!💡
 임직원 여러분이 던져주시는 질문과 피드백을 먹고 성장하고 있어요.
 
 아직 모르는 단어가 있을 수도 있지만, 여러분이 자주 사용하고 적극적으로 의견을 남길수록 더욱 풍성하고 똑똑한 답변을 드릴 수 있답니다.
